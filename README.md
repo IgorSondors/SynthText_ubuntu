@@ -5,18 +5,104 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 **Synthetic Scene-Text Image Samples**
 ![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
 
-The code in the `master` branch is for Python2. Python3 is supported in the `python3` branch.
-
 The main dependencies are:
 
 ```
 pygame, opencv (cv2), PIL (Image), numpy, matplotlib, h5py, scipy
 ```
+# SynthText for (English + Japanese)
+Code for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/) with support for japanese characters
+
+## TODO
+
+Add support for chinese
+
+## Output samples
+
+
+**Synthetic Japanese Text Samples 1**
+
+![Japanese example 1](results/sample1.png "Synthetic Japanese Text Samples 1")
+
+
+**Synthetic Japanese Text Samples 2**
+
+![Japanese example 2](results/sample2.png "Synthetic Japanese Text Samples 2")
+
+
+**Synthetic Japanese Text Samples 3**
+
+![Japanese example 3](results/sample3.png "Synthetic Japanese Text Samples 3")
+
+
+**Synthetic Japanese Text Samples 4**
+
+![Japanese example 4](results/sample4.png "Synthetic Japanese Text Samples 4")
+
+
+The library is written in Python. The main dependencies are:
+
+```
+pygame, opencv (version 3.3), PIL (Image), numpy, matplotlib, h5py, scipy
+```
+
+## The main differences
+
+1. Use opencv 3.3 instead of opencv 2.4
+2. Use nltk to parse language (eng, jpn)
+
+## How to use this source
+
+### Preparation
+
+Put your text data and font as follow
+
+```
+data
+├── dset.h5
+├── fonts
+│   ├── fontlist.txt                        : your font list
+│   ├── ubuntu
+│   ├── ubuntucondensed
+│   ├── ubuntujapanese                      : your japanese font
+│   └── ubuntumono
+├── models
+│   ├── char_freq.cp
+│   ├── colors_new.cp
+│   └── font_px2pt.cp
+└── newsgroup
+    └── newsgroup.txt                       : your text source
+```
+
+### Install dependencies
+
+```
+# For japanese
+sudo apt-get install libmecab2 libmecab-dev mecab mecab-ipadic mecab-ipadic-utf8 mecab-utils
+```
+
+### Generate font model and char model
+```
+python invert_font_size.py
+python update_freq.py
+
+mv char_freq.cp data/models/
+mv font_px2pt.cp data/models/
+```
+
+### Then go to next
+
+# SynthText
+Code for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
+
+
+**Synthetic Scene-Text Image Samples**
+![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
 
 ### Generating samples
 
 ```
-python gen.py --viz
+python gen.py --viz --lang ENG/JPN
 ```
 
 This will download a data file (~56M) to the `data` directory. This data file includes:
@@ -45,29 +131,19 @@ For an explanation of the fields in `dset.h5` (e.g.: `seg`,`area`,`label`), plea
 
 ### Pre-processed Background Images
 The 8,000 background images used in the paper, along with their segmentation and depth masks, have been uploaded here:
-`http://www.robots.ox.ac.uk/~vgg/data/scenetext/preproc/<filename>`, where, `<filename>` can be:
+`http://zeus.robots.ox.ac.uk/textspot/static/db/<filename>`, where, `<filename>` can be:
 
-|    filenames    | size |                      description                     |             md5 hash             |
-|:--------------- | ----:|:---------------------------------------------------- |:-------------------------------- |
-| `imnames.cp`    | 180K | names of images which do not contain background text |                                  |
-| `bg_img.tar.gz` | 8.9G | images (filter these using `imnames.cp`)             | 3eac26af5f731792c9d95838a23b5047 |
-| `depth.h5`      |  15G | depth maps                                           | af97f6e6c9651af4efb7b1ff12a5dc1b |
-| `seg.h5`        | 6.9G | segmentation maps                                    | 1605f6e629b2524a3902a5ea729e86b2 |
-
-Note: due to large size, `depth.h5` is also available for download as 3-part split-files of 5G each.
-These part files are named: `depth.h5-00, depth.h5-01, depth.h5-02`. Download using the path above, and put them together using `cat depth.h5-0* > depth.h5`.
-
-[`use_preproc_bg.py`](https://github.com/ankush-me/SynthText/blob/master/use_preproc_bg.py) provides sample code for reading this data.
+- `imnames.cp` [180K]: names of filtered files, i.e., those files which do not contain text
+- `bg_img.tar.gz` [8.9G]: compressed image files (more than 8000, so only use the filtered ones in imnames.cp)
+- `depth.h5` [15G]: depth maps
+- `seg.h5` [6.9G]: segmentation maps
 
 Note: I do not own the copyright to these images.
 
 ### Generating Samples with Text in non-Latin (English) Scripts
-- @JarveeLee has modified the pipeline for generating samples with Chinese text [here](https://github.com/JarveeLee/SynthText_Chinese_version).
-- @adavoudi has modified it for arabic/persian script, which flows from right-to-left [here](https://github.com/adavoudi/SynthText).
-- @MichalBusta has adapted it for a number of languages (e.g. Bangla, Arabic, Chinese, Japanese, Korean) [here](https://github.com/MichalBusta/E2E-MLT).
-- @gachiemchiep has adapted for Japanese [here](https://github.com/gachiemchiep/SynthText).
-- @gungui98 has adapted for Vietnamese [here](https://github.com/gungui98/SynthText).
-- @youngkyung has adapted for Korean [here](https://github.com/youngkyung/SynthText_kr).
+@JarveeLee has modified the pipeline for generating samples with Chinese text [here](https://github.com/JarveeLee/SynthText_Chinese_version).
+@gachiemchiep has modified the pipeline for generating samples with Japanese text [here](https://github.com/gachiemchiep/SynthText).
+
 
 ### Further Information
 Please refer to the paper for more information, or contact me (email address in the paper).
