@@ -13,13 +13,6 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 
 ![example 2](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example2.jpg)
 
-
-The library is written in Python. The main dependencies are:
-
-```
-pygame, opencv (version 3.3), PIL (Image), numpy, matplotlib, h5py, scipy
-```
-
 ## How to use this source
 
 ### Preparation
