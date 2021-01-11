@@ -76,12 +76,17 @@ A dataset with approximately 800000 synthetic scene-text images generated with t
 
 ### Pre-processed Background Images
 The 8,000 background images used in the paper, along with their segmentation and depth masks, have been uploaded here:
-`http://zeus.robots.ox.ac.uk/textspot/static/db/<filename>`, where, `<filename>` can be:
+`http://www.robots.ox.ac.uk/~vgg/data/scenetext/preproc/<filename>`, where, `<filename>` can be:
 
-- `imnames.cp` [180K]: names of filtered files, i.e., those files which do not contain text
-- `bg_img.tar.gz` [8.9G]: compressed image files (more than 8000, so only use the filtered ones in imnames.cp)
-- `depth.h5` [15G]: depth maps
-- `seg.h5` [6.9G]: segmentation maps
+|    filenames    | size |                      description                     |             md5 hash             |
+|:--------------- | ----:|:---------------------------------------------------- |:-------------------------------- |
+| `imnames.cp`    | 180K | names of images which do not contain background text |                                  |
+| `bg_img.tar.gz` | 8.9G | images (filter these using `imnames.cp`)             | 3eac26af5f731792c9d95838a23b5047 |
+| `depth.h5`      |  15G | depth maps                                           | af97f6e6c9651af4efb7b1ff12a5dc1b |
+| `seg.h5`        | 6.9G | segmentation maps                                    | 1605f6e629b2524a3902a5ea729e86b2 |
+
+Note: due to large size, `depth.h5` is also available for download as 3-part split-files of 5G each.
+These part files are named: `depth.h5-00, depth.h5-01, depth.h5-02`. Download using the path above, and put them together using `cat depth.h5-0* > depth.h5`.
 
 ### TO DO
 - [ ] Генерировать карты глубины картинок произвольного размера
