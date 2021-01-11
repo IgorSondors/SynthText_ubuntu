@@ -38,12 +38,16 @@ scipy==1.5.4
 ### Generate font model and char model
 ```
 python invert_font_size.py
-python update_freq.py
+python char_freq.py
 
 mv char_freq.cp data/models/
 mv font_px2pt.cp data/models/
 ```
+### Check the structure of a .h5 file
 
+```
+python check_structure.py
+```
 ### Generating samples
 
 ```
