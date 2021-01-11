@@ -1,18 +1,6 @@
 # SynthText
 Code for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
 
-## Output samples
-
-
-**Synthetic Rus Text Samples 1**
-
-![example 1](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example1.jpg)
-
-
-**Synthetic Rus Text Samples 2**
-
-![example 2](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example2.jpg)
-
 ## How to use this source
 
 ### Preparation
@@ -58,6 +46,18 @@ python update_freq.py
 mv char_freq.cp data/models/
 mv font_px2pt.cp data/models/
 ```
+## Output samples for Russian text
+
+
+**Synthetic Rus Text Samples 1**
+
+![example 1](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example1.jpg)
+
+
+**Synthetic Rus Text Samples 2**
+
+![example 2](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example2.jpg)
+
 
 ### Then go to next
 
