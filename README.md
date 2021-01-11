@@ -5,39 +5,17 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 **Synthetic Scene-Text Image Samples**
 ![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
 
-The main dependencies are:
-
-```
-pygame, opencv (cv2), PIL (Image), numpy, matplotlib, h5py, scipy
-```
-# SynthText for (English + Japanese)
-Code for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/) with support for japanese characters
-
-## TODO
-
-Add support for chinese
-
 ## Output samples
 
 
-**Synthetic Japanese Text Samples 1**
+**Synthetic Rus Text Samples 1**
 
-![Japanese example 1](results/sample1.png "Synthetic Japanese Text Samples 1")
-
-
-**Synthetic Japanese Text Samples 2**
-
-![Japanese example 2](results/sample2.png "Synthetic Japanese Text Samples 2")
+![example 1]()
 
 
-**Synthetic Japanese Text Samples 3**
+**Synthetic Rus Text Samples 2**
 
-![Japanese example 3](results/sample3.png "Synthetic Japanese Text Samples 3")
-
-
-**Synthetic Japanese Text Samples 4**
-
-![Japanese example 4](results/sample4.png "Synthetic Japanese Text Samples 4")
+![example 2]()
 
 
 The library is written in Python. The main dependencies are:
@@ -45,11 +23,6 @@ The library is written in Python. The main dependencies are:
 ```
 pygame, opencv (version 3.3), PIL (Image), numpy, matplotlib, h5py, scipy
 ```
-
-## The main differences
-
-1. Use opencv 3.3 instead of opencv 2.4
-2. Use nltk to parse language (eng, jpn)
 
 ## How to use this source
 
@@ -64,7 +37,7 @@ data
 │   ├── fontlist.txt                        : your font list
 │   ├── ubuntu
 │   ├── ubuntucondensed
-│   ├── ubuntujapanese                      : your japanese font
+│   ├── Below150pix                         : your font
 │   └── ubuntumono
 ├── models
 │   ├── char_freq.cp
@@ -74,11 +47,16 @@ data
     └── newsgroup.txt                       : your text source
 ```
 
-### Install dependencies
+### Install pip dependencies
 
 ```
-# For japanese
-sudo apt-get install libmecab2 libmecab-dev mecab mecab-ipadic mecab-ipadic-utf8 mecab-utils
+jsonpickle==1.4.1
+matplotlib==3.3.3
+Pillow==8.0.1
+pygame==1.9.3
+wrapt==1.12.1
+opencv-python==4.4.0.46
+h5py==2.10.0
 ```
 
 ### Generate font model and char model
@@ -102,7 +80,7 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 ### Generating samples
 
 ```
-python gen.py --viz --lang ENG/JPN
+python gen.py --viz
 ```
 
 This will download a data file (~56M) to the `data` directory. This data file includes:
@@ -137,13 +115,3 @@ The 8,000 background images used in the paper, along with their segmentation and
 - `bg_img.tar.gz` [8.9G]: compressed image files (more than 8000, so only use the filtered ones in imnames.cp)
 - `depth.h5` [15G]: depth maps
 - `seg.h5` [6.9G]: segmentation maps
-
-Note: I do not own the copyright to these images.
-
-### Generating Samples with Text in non-Latin (English) Scripts
-@JarveeLee has modified the pipeline for generating samples with Chinese text [here](https://github.com/JarveeLee/SynthText_Chinese_version).
-@gachiemchiep has modified the pipeline for generating samples with Japanese text [here](https://github.com/gachiemchiep/SynthText).
-
-
-### Further Information
-Please refer to the paper for more information, or contact me (email address in the paper).
