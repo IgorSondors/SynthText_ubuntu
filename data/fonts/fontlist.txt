@@ -1,0 +1,7 @@
+Below150pix/Arial.ttf
+Below150pix/B52.ttf
+Below150pix/bookman old style.ttf
+Below150pix/Garamond.ttf
+Below150pix/times new roman.ttf
+Below150pix/times new roman bold.ttf
+Below150pix/TypeWriter.ttf
