@@ -53,6 +53,8 @@ pygame==1.9.3
 wrapt==1.12.1
 opencv-python==4.4.0.46
 h5py==2.10.0
+numpy==1.19.2
+scipy==1.5.4
 ```
 
 ### Generate font model and char model
