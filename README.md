@@ -6,12 +6,12 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 
 **Synthetic Rus Text Samples 1**
 
-![example 1]()
+![example 1](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example1.jpg)
 
 
 **Synthetic Rus Text Samples 2**
 
-![example 2]()
+![example 2](https://github.com/IgorSondors/SynthText_ubuntu/blob/main/results/example2.jpg)
 
 
 The library is written in Python. The main dependencies are:
