@@ -27,8 +27,13 @@ def viz_textbb(text_im, charBB_list, wordBB, alpha=1.0):
     plt.figure(1)
     plt.imshow(text_im)
     H,W = text_im.shape[:2]
-
+    print("image shape", (H, W))
+    
     # plot the character-BB:
+    #print(type(charBB_list))
+    #print(charBB_list)
+    #print(len(charBB_list[0][0]))
+    #print((charBB_list[0][0]))
     for i in range(len(charBB_list)):
         bbs = charBB_list[i]
         ni = bbs.shape[-1]
@@ -63,18 +68,19 @@ def main(db_fname):
         
         txt_utf = []
         for i in txt:
-            txt_utf.append(i.decode("utf-8"))
+            txt_utf.append(i)#.decode("utf-8"))
 
         viz_textbb(rgb, [charBB], wordBB)
+        
         print ("image name        : ", colorize(Color.RED, k, bold=True))
         print ("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         print ("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print ("  ** text         : ", colorize(Color.GREEN, txt_utf))
-        #print ("  ** text         : ", colorize(Color.GREEN, txt))
+        print ("  ** text         : ", colorize(Color.GREEN, txt))
 
         if 'q' in input("next? ('q' to exit) : "):
             break
     db.close()
 
 if __name__=='__main__':
-    main('results/SynthText.h5')
+    main('results/dset_kr.h5')
