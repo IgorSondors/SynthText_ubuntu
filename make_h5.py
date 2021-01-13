@@ -12,7 +12,7 @@ from common import *
 from synthgen import *
 from PIL import Image
 
-START_IMG_IDX = 8000
+START_IMG_IDX = 8008
 NUM_IMG = -1
 
 INSTANCE_PER_IMAGE = 1
