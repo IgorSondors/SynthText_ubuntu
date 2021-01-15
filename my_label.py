@@ -15,7 +15,7 @@ def main(db_fname):
     dsets = sorted(db['data'].keys())
     print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
 
-    my_ch_label = open('results/my_label/my_ch_label.txt', 'a')
+    my_ch_label = open('results/my_label/my_ch_label.csv', 'a')
     
     for k in dsets:
         rgb = db['data'][k][...]
@@ -32,10 +32,11 @@ def main(db_fname):
         img = Image.fromarray(rgb, 'RGB')
         img.save('results/my_label/images/'+k[:-2])
 
+        img_w, img_h = img.size[0], img.size[1]
         name_jpg = k
         chars_quantity = charBB.shape[-1]
 
-        my_ch_label.write(k[:-2])
+        my_ch_label.write(k[:-2] + ',' + str(img_h) + ',' + str(img_w))
 
         all_symbols = ''
         for j in range(len(txt)):
