@@ -63,7 +63,6 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 
 ### Adding New Images
 Segmentation and depth-maps are required to use new images as background. Sample scripts for obtaining these are available [here](https://github.com/ankush-me/SynthText/tree/master/prep_scripts).
-@@ -70,37 +43,31 @@ Segmentation and depth-maps are required to use new images as background. Sample
 
 For an explanation of the fields in `dset.h5` (e.g.: `seg`,`area`,`label`), please check this [comment](https://github.com/ankush-me/SynthText/issues/5#issuecomment-274490044).
 
