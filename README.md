@@ -50,6 +50,7 @@ python check_structure.py
 
 ```
 python gen.py
+```
 
 ### Visualize
 
@@ -91,6 +92,7 @@ These part files are named: `depth.h5-00, depth.h5-01, depth.h5-02`. Download us
 - [ ] Задавать границы размера символов, в пределах которых будет генерироваться текст
 - [ ] Менять плотность текста
 - [ ] Вращать картинки и пересчитывать координаты символов в соответствии с этим (функция есть)
+
 ## Output samples for Russian text
 
 **Synthetic Rus Text Samples 1**
