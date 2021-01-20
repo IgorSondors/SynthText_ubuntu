@@ -55,11 +55,18 @@ def main(db_fname):
             x_down_right = charBB[0][2][i]
             y_down_right = charBB[1][2][i]
 
+            print(x_down_left, y_down_left, x_top_left,
+            y_top_left,
+            x_top_right,
+            y_top_right,
+            x_down_right,
+            y_down_right)
+
             value_of_symbol = all_symbols[i]
 
-            w_of_next_ch = ((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**1/2
+            w_of_next_ch = ((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5
 
-            h_of_next_ch = ((x_top_right - x_down_right)**2+(y_top_right - y_down_right)**2)**1/2
+            h_of_next_ch = ((x_top_right - x_down_right)**2+(y_top_right - y_down_right)**2)**0.5
 
             
             my_ch_label.write(',' + str(x_down_left) + ',' + str(y_down_left) + ',' + str(w_of_next_ch) + ',' + str(h_of_next_ch) + ',' + value_of_symbol)
@@ -68,5 +75,9 @@ def main(db_fname):
 
     db.close()
 
+def kx_plus_b(x_down_left, y_down_left, x_down_right, y_down_right):
+    k = (y_down_left - y_down_right)/(x_down_left - x_down_right)
+
+
 if __name__=='__main__':
-    main('results/dset_kr.h5')
+    main('/home/sondors/SynthText_ubuntu/results/dset_alphabet.h5')
