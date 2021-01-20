@@ -94,7 +94,7 @@ class RenderFont(object):
         # to define the maximum font height.
         self.min_nchar = 2
         self.min_font_h = 16 #px : 0.6*12 ~ 7px <= actual minimum height
-        self.max_font_h = 120 #px
+        self.max_font_h = 50 #px
         self.p_flat = 0.10
 
         # curved baseline:
@@ -160,10 +160,10 @@ class RenderFont(object):
         bbs = np.array(bbs)
         surf_arr, bbs = crop_safe(pygame.surfarray.pixels_alpha(surf), rect_union, bbs, pad=5)
         surf_arr = surf_arr.swapaxes(0,1)
-        #self.visualize_bb(surf_arr,bbs)
+        self.visualize_bb(surf_arr,bbs)
         return surf_arr, words, bbs
 
-    def render_curved(self, font, word_text):
+    def render_curved(self, font, word_text, rendering_sample):
         """
         use curved baseline for rendering word
         """
@@ -179,6 +179,8 @@ class RenderFont(object):
         lbound = font.get_rect(word_text)
         fsize = (round(2.0*lbound.width), round(3*lspace))
         surf = pygame.Surface(fsize, pygame.locals.SRCALPHA, 32)
+        pygame.image.save(surf, '/home/sondors/SynthText_ubuntu/results/1/render_curved-surf-1-{}.jpg'.format(rendering_sample))
+
 
         # baseline state
         mid_idx = wl//2
@@ -190,17 +192,22 @@ class RenderFont(object):
         bbs = []
         # place middle char
         rect = font.get_rect(word_text[mid_idx])
+        #print('render_curved rect', rect)
         rect.centerx = surf.get_rect().centerx
         rect.centery = surf.get_rect().centery + rect.height
         rect.centery +=  curve[mid_idx]
         ch_bounds = font.render_to(surf, rect, word_text[mid_idx], rotation=rots[mid_idx])
         ch_bounds.x = rect.x + ch_bounds.x
         ch_bounds.y = rect.y - ch_bounds.y
+        #print(ch_bounds)
         mid_ch_bb = np.array(ch_bounds)
 
         # render chars to the left and right:
         last_rect = rect
         ch_idx = []
+
+        short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
+        long_ch = 'друфцщ'
         for i in range(wl):
             #skip the middle character
             if i==mid_idx: 
@@ -218,6 +225,16 @@ class RenderFont(object):
 
             newrect = font.get_rect(ch)
             newrect.y = last_rect.y
+            print('pygame newrect', newrect, 'of character', ch)
+
+            """if ch in short_ch:
+                short_h = newrect.h
+                print('Буква a высота ', short_h, 'все коорд', newrect)
+            
+            if ch in long_ch:
+                newrect.h = short_h
+                print('Буква р высота ', newrect.h, 'все коорд', newrect)"""
+            
             if i > mid_idx:
                 newrect.topleft = (last_rect.topright[0]+2, newrect.topleft[1])
             else:
@@ -225,6 +242,7 @@ class RenderFont(object):
             newrect.centery = max(newrect.height, min(fsize[1] - newrect.height, newrect.centery + curve[i]))
             try:
                 bbrect = font.render_to(surf, newrect, ch, rotation=rots[i])
+                #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-bbrect-0-{}.jpg'.format(rendering_sample), bbrect)
             except ValueError:
                 bbrect = font.render_to(surf, newrect, ch)
             bbrect.x = newrect.x + bbrect.x
@@ -241,11 +259,14 @@ class RenderFont(object):
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
         rect_union = r0.unionall(bbs)
+        print('type(rect_union)', type(rect_union))
 
         # crop the surface to fit the text:
         bbs = np.array(bbs)
         surf_arr, bbs = crop_safe(pygame.surfarray.pixels_alpha(surf), rect_union, bbs, pad=5)
         surf_arr = surf_arr.swapaxes(0,1)
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-surf_arr-2-{}.jpg'.format(rendering_sample), surf_arr)
+        print('pygame bb', bbs)
         return surf_arr, word_text, bbs
 
 
@@ -286,6 +307,7 @@ class RenderFont(object):
             # blit the text onto the canvas
             w,h = text_arrs[i].shape
             out_arr[loc[0]:loc[0]+w,loc[1]:loc[1]+h] += text_arrs[i]
+        #print('out_arr', out_arr)
 
         return out_arr, locs, bbs, order
 
@@ -341,12 +363,12 @@ class RenderFont(object):
         ## TODO : change this to allow multiple text instances?
         i = 0
         while i < self.max_shrink_trials and max_font_h > self.min_font_h:
-            # if i > 0:
-            #     print colorize(Color.BLUE, "shrinkage trial : %d"%i, True)
+            if i > 0:
+                print(colorize(Color.BLUE, "shrinkage trial : %d"%i, True))
 
             # sample a random font-height:
             f_h_px = self.sample_font_height_px(self.min_font_h, max_font_h)
-            #print "font-height : %.2f (min: %.2f, max: %.2f)"%(f_h_px, self.min_font_h,max_font_h)
+            print("font-height : %.2f (min: %.2f, max: %.2f)"%(f_h_px, self.min_font_h,max_font_h))
             # convert from pixel-height to font-point-size:
             f_h = self.font_state.get_font_size(font, f_h_px)
 
@@ -358,7 +380,7 @@ class RenderFont(object):
 
             # compute the max-number of lines/chars-per-line:
             nline,nchar = self.get_nline_nchar(mask.shape[:2],f_h,f_h*f_asp)
-            #print "  > nline = %d, nchar = %d"%(nline, nchar)
+            print("  > nline = %d, nchar = %d"%(nline, nchar))
 
             assert nline >= 1 and nchar >= self.min_nchar
 
@@ -367,10 +389,12 @@ class RenderFont(object):
             text = self.text_source.sample(nline,nchar,text_type)
             if len(text)==0 or np.any([len(line)==0 for line in text]):
                 continue
-            #print colorize(Color.GREEN, text)
+            print(colorize(Color.GREEN, text))
 
             # render the text:
-            txt_arr,txt,bb = self.render_curved(font, text)
+            txt_arr,txt,bb = self.render_curved(font, text, i)
+            cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_sample-txt_arr-3-{}.jpg'.format(i), txt_arr)
+
             bb = self.bb_xywh2coords(bb)
 
             # make sure that the text-array is not bigger than mask array:
@@ -380,6 +404,19 @@ class RenderFont(object):
 
             # position the text within the mask:
             text_mask,loc,bb, _ = self.place_text([txt_arr], mask, [bb])
+
+            cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_sample-text_mask-3-{}.jpg'.format(i), text_mask)
+
+            """print('text_mask', text_mask, len(text_mask))
+            print('text_mask[0]', text_mask[0], len(text_mask[0]))
+            print('text_mask[1]', text_mask[1], len(text_mask[1]))
+            print('loc', loc, len(loc))
+            print('bb', bb, len(bb))
+            print('_', _, len(_))"""
+
+            #text_mask = [[0]]
+            #print('text_mask,loc,bb, _', text_mask,loc,bb, _)
+
             if len(loc) > 0:#successful in placing the text collision-free:
                 return text_mask,loc[0],bb[0],text
         return #None
@@ -387,8 +424,11 @@ class RenderFont(object):
 
     def visualize_bb(self, text_arr, bbs):
         ta = text_arr.copy()
+        i = 0
         for r in bbs:
-            cv.rectangle(ta, (r[0],r[1]), (r[0]+r[2],r[1]+r[3]), color=128, thickness=1)
+            i = i + 1
+            cv2.rectangle(ta, (r[0],r[1]), (r[0]+r[2],r[1]+r[3]), color=128, thickness=1)
+            cv2.imwrite('/home/sondors/SynthText_ubuntu/results/all_text_arr/{}-{}.jpg'.format(i, r), ta)
         plt.imshow(ta,cmap='gray')
         plt.show()
 

@@ -13,7 +13,7 @@ from synthgen import *
 from PIL import Image
 
 START_IMG_IDX = 8008
-NUM_IMG = -1
+NUM_IMG = 1#-1
 
 INSTANCE_PER_IMAGE = 1
 SECS_PER_IMG = 5 #max time per image in seconds
@@ -42,7 +42,7 @@ def main(viz=False):
     depth_db = h5py.File(config['depth_db'],'r')
     seg_db = h5py.File(config['seg_db'],'r')
 
-    out_db = h5py.File(outdir + '/dset_kr.h5', 'w')
+    out_db = h5py.File(outdir + '/dset_alphabet.h5', 'w')
     out_db.create_group('/data')
 
     imnames = sorted(depth_db.keys())
@@ -81,10 +81,12 @@ def main(viz=False):
             sz = depth.shape[:2][::-1]
             img = np.array(img.resize(sz,Image.ANTIALIAS))
             seg = np.array(Image.fromarray(seg).resize(sz,Image.NEAREST))
+            
 
             print(colorize(Color.RED,'%d of %d'%(i,end_idx-1), bold=True))
             res = RV3.render_text(img,depth,seg,area,label,
                                   ninstance=INSTANCE_PER_IMAGE,viz=viz)
+            #print('res ', res)
             if len(res) > 0:
                 # non-empty : successful in placing text:
                 add_res_to_db(imname, res, out_db)

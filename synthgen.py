@@ -309,11 +309,11 @@ def viz_masks(fignum,rgb,seg,depth,label):
         rgb_rand = (255*np.random.rand(3)).astype('uint8')
         img[mask] = rgb_rand[None,None,:] 
 
-    #import scipy
-    # scipy.misc.imsave('seg.png', mim)
-    # scipy.misc.imsave('depth.png', depth)
-    # scipy.misc.imsave('txt.png', rgb)
-    # scipy.misc.imsave('reg.png', img)
+    import imageio
+    imageio.imwrite('results/seg.png', mim)
+    imageio.imwrite('results/depth.png', depth)
+    imageio.imwrite('results/txt.png', rgb)
+    imageio.imwrite('results/reg.png', img)
 
     plt.close(fignum)
     plt.figure(fignum)
@@ -493,7 +493,7 @@ class RendererV3(object):
             ksz = 5
         return cv2.GaussianBlur(text_mask,(ksz,ksz),bsz)
 
-    def place_text(self,rgb,collision_mask,H,Hinv):
+    def place_text(self,rgb,collision_mask,H,Hinv, counter_of_instances):
         font = self.text_renderer.font_state.sample()
         font = self.text_renderer.font_state.init_font(font)
 
@@ -508,8 +508,14 @@ class RendererV3(object):
 
         # warp the object mask back onto the image:
         text_mask_orig = text_mask.copy()
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_orig-1-{}.jpg'.format(counter_of_instances), text_mask_orig)
         bb_orig = bb.copy()
         text_mask = self.warpHomography(text_mask,H,rgb.shape[:2][::-1])
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-2-{}.jpg'.format(counter_of_instances), text_mask)
+
+        print('text_mask before is ', len(text_mask), text_mask)
+        print(type(text_mask))
+
         bb = self.homographyBB(bb,Hinv)
 
         if not self.bb_filter(bb_orig,bb,text):
@@ -521,8 +527,15 @@ class RendererV3(object):
 
         #feathering:
         text_mask = self.feather(text_mask, min_h)
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_feathered-3-{}.jpg'.format(counter_of_instances), text_mask)
+        
+        
+        print('text_mask is ',len(text_mask), text_mask)
+        print(type(text_mask))
 
         im_final = self.colorizer.color(rgb,[text_mask],np.array([min_h]))
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/im_final-4-{}.jpg'.format(counter_of_instances), im_final)
+        #im_final = rgb
 
         return im_final, text, bb, collision_mask
 
@@ -553,10 +566,11 @@ class RendererV3(object):
         
         for i in range(len(wrds)):
             cc = charBB[:,:,bb_idx[i]:bb_idx[i+1]]
-
+            print('cc is ', cc)
             # fit a rotated-rectangle:
             # change shape from 2x4xn_i -> (4*n_i)x2
             cc = np.squeeze(np.concatenate(np.dsplit(cc,cc.shape[-1]),axis=1)).T.astype('float32')
+
             rect = cv2.minAreaRect(cc.copy())
             box = np.array(cv2.boxPoints(rect))
 
@@ -613,6 +627,7 @@ class RendererV3(object):
 
             # find the placement mask and homographies:
             regions = self.filter_for_placement(xyz,seg,regions)
+            print('regions это', regions)
 
             # finally place some text:
             nregions = len(regions['place_mask'])
@@ -625,10 +640,15 @@ class RendererV3(object):
             return []
 
         res = []
+        
         for i in range(ninstance):
+
+            counter_of_instances = -1
+            
             place_masks = copy.deepcopy(regions['place_mask'])
 
-            print (colorize(Color.CYAN, " ** instance # : %d"%i))
+            #print('place_masks to image', place_masks)
+            #print (colorize(Color.CYAN, " ** instance # : %d"%i))
 
             idict = {'img':[], 'charBB':None, 'wordBB':None, 'txt':None}
 
@@ -644,20 +664,27 @@ class RendererV3(object):
 
             # process regions: 
             num_txt_regions = len(reg_idx)
-            NUM_REP = 5 # re-use each region three times:
+            NUM_REP = 1 # re-use each region three times:
             reg_range = np.arange(NUM_REP * num_txt_regions) % num_txt_regions
             for idx in reg_range:
+                counter_of_instances = counter_of_instances + 1
                 ireg = reg_idx[idx]
+                """print('ireg', ireg)
+                print('place_masks[ireg]', place_masks[ireg], 'place_masks[ireg] len', len(place_masks[ireg]), 'place_masks[ireg][0] len', len(place_masks[ireg][0]))
+                print("regions['homography'][ireg]", (regions['homography'][ireg]))
+                print("regions['homography_inv'][ireg] len", len(regions['homography_inv'][ireg]))
+                print("regions['homography_inv'][ireg]", regions['homography_inv'][ireg])"""
+                
                 try:
                     if self.max_time is None:
                         txt_render_res = self.place_text(img,place_masks[ireg],
                                                          regions['homography'][ireg],
-                                                         regions['homography_inv'][ireg])
+                                                         regions['homography_inv'][ireg], counter_of_instances)
                     else:
                         with time_limit(self.max_time):
                             txt_render_res = self.place_text(img,place_masks[ireg],
                                                              regions['homography'][ireg],
-                                                             regions['homography_inv'][ireg])
+                                                             regions['homography_inv'][ireg], counter_of_instances)
                 except TimeoutException as msg:
                     print (msg)
                     continue
@@ -669,17 +696,28 @@ class RendererV3(object):
                 if txt_render_res is not None:
                     placed = True
                     img,text,bb,collision_mask = txt_render_res
+                    
                     # update the region collision mask:
                     place_masks[ireg] = collision_mask
                     # store the result:
                     itext.append(text)
                     ibb.append(bb)
 
+                cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-img-6-{}.jpg'.format(counter_of_instances), img)
+                cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-collision_mask-5-{}.jpg'.format(counter_of_instances), collision_mask)
             if  placed:
                 # at least 1 word was placed in this instance:
                 idict['img'] = img
                 idict['txt'] = itext
+                print('len(itext)', itext)
                 idict['charBB'] = np.concatenate(ibb, axis=2)
+                print('len(ibb)', len(ibb))
+                print("len(idict['charBB'])", len(idict['charBB']))
+                print("len(idict['charBB'][0])", len(idict['charBB'][0]))
+                print("len(idict['charBB'][1])", len(idict['charBB'][1]))
+
+                print('ibb', ibb)
+                print("idict['charBB']", idict['charBB'])
                 idict['wordBB'] = self.char2wordBB(idict['charBB'].copy(), ' '.join(itext))
                 res.append(idict.copy())
                 if viz:

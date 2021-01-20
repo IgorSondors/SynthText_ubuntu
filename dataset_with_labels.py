@@ -117,7 +117,7 @@ def _tojpg(text_im, polygon, index, k, typ):
     y_max = max([x[1] for x in polygon])
 
     newIm = newIm.crop((x_min, y_min, x_max, y_max))
-
+    
     if typ == "char":
         newIm.save("results/characters/"+typ+"_"+str(index)+".jpg")
         f1 = open('results/ch_coords.txt', 'a')
@@ -140,10 +140,10 @@ def main(db_fname):
         txt = db['data'][k].attrs['txt']
 
         viz_textbb(rgb, [charBB], wordBB, index=k, txt=txt)
-        print("image name        : ", colorize(Color.RED, k, bold=True))
+        '''print("image name        : ", colorize(Color.RED, k, bold=True))
         print("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
-        print("  ** text         : ", colorize(Color.GREEN, txt))
+        print("  ** text         : ", colorize(Color.GREEN, txt))'''
         # print("  ** text         : ", colorize(Color.GREEN, txt.encode('utf-8')))
 
         # if 'q' in raw_input("next? ('q' to exit) : "):
@@ -151,4 +151,4 @@ def main(db_fname):
     db.close()
 
 if __name__=='__main__':
-    main('results/dset_kr.h5')
+    main('/home/sondors/SynthText_ubuntu/results/dset_alphabet.h5')
