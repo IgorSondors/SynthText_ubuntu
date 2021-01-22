@@ -280,6 +280,7 @@ def get_text_placement_mask(xyz,mask,plane,pad=2,viz=False):
         plt.imshow(mask)
         plt.subplot(1,2,2)
         plt.imshow(~place_mask)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/place_mask.jpg', place_mask)
         for i in range(len(pts_fp_i32)):
             plt.scatter(pts_fp_i32[i][:,0],pts_fp_i32[i][:,1],
                         edgecolors='none',facecolor='g',alpha=0.5)
@@ -391,6 +392,12 @@ class RendererV3(object):
             res = get_text_placement_mask(xyz,seg==l,regions['coeff'][idx],pad=2)
             if res is not None:
                 mask,H,Hinv = res
+                #masks.append(mask)
+                #Hs.append(H)
+                #Hinvs.append(Hinv)
+                #filt[idx] = True
+
+            if nice_homography(Hinv):
                 masks.append(mask)
                 Hs.append(H)
                 Hinvs.append(Hinv)
@@ -513,8 +520,8 @@ class RendererV3(object):
         text_mask = self.warpHomography(text_mask,H,rgb.shape[:2][::-1])
         cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-2-{}.jpg'.format(counter_of_instances), text_mask)
 
-        print('text_mask before is ', len(text_mask), text_mask)
-        print(type(text_mask))
+        """print('text_mask before is ', len(text_mask), text_mask)
+        print(type(text_mask))"""
 
         bb = self.homographyBB(bb,Hinv)
 
@@ -530,8 +537,8 @@ class RendererV3(object):
         cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_feathered-3-{}.jpg'.format(counter_of_instances), text_mask)
         
         
-        print('text_mask is ',len(text_mask), text_mask)
-        print(type(text_mask))
+        """print('text_mask is ',len(text_mask), text_mask)
+        print(type(text_mask))"""
 
         im_final = self.colorizer.color(rgb,[text_mask],np.array([min_h]))
         cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/im_final-4-{}.jpg'.format(counter_of_instances), im_final)
@@ -566,7 +573,7 @@ class RendererV3(object):
         
         for i in range(len(wrds)):
             cc = charBB[:,:,bb_idx[i]:bb_idx[i+1]]
-            print('cc is ', cc)
+            #print('cc is ', cc)
             # fit a rotated-rectangle:
             # change shape from 2x4xn_i -> (4*n_i)x2
             cc = np.squeeze(np.concatenate(np.dsplit(cc,cc.shape[-1]),axis=1)).T.astype('float32')
@@ -627,7 +634,7 @@ class RendererV3(object):
 
             # find the placement mask and homographies:
             regions = self.filter_for_placement(xyz,seg,regions)
-            print('regions это', regions)
+            #print('regions это', regions)
 
             # finally place some text:
             nregions = len(regions['place_mask'])
@@ -664,7 +671,7 @@ class RendererV3(object):
 
             # process regions: 
             num_txt_regions = len(reg_idx)
-            NUM_REP = 1 # re-use each region three times:
+            NUM_REP = 5 # re-use each region three times:
             reg_range = np.arange(NUM_REP * num_txt_regions) % num_txt_regions
             for idx in reg_range:
                 counter_of_instances = counter_of_instances + 1
@@ -703,21 +710,21 @@ class RendererV3(object):
                     itext.append(text)
                     ibb.append(bb)
 
-                cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-img-6-{}.jpg'.format(counter_of_instances), img)
-                cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-collision_mask-5-{}.jpg'.format(counter_of_instances), collision_mask)
+                    cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-img-6-{}.jpg'.format(counter_of_instances), img)
+                    cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-collision_mask-5-{}.jpg'.format(counter_of_instances), collision_mask)
             if  placed:
                 # at least 1 word was placed in this instance:
                 idict['img'] = img
                 idict['txt'] = itext
-                print('len(itext)', itext)
+                #print('len(itext)', itext)
                 idict['charBB'] = np.concatenate(ibb, axis=2)
-                print('len(ibb)', len(ibb))
+                """print('len(ibb)', len(ibb))
                 print("len(idict['charBB'])", len(idict['charBB']))
                 print("len(idict['charBB'][0])", len(idict['charBB'][0]))
                 print("len(idict['charBB'][1])", len(idict['charBB'][1]))
 
                 print('ibb', ibb)
-                print("idict['charBB']", idict['charBB'])
+                print("idict['charBB']", idict['charBB'])"""
                 idict['wordBB'] = self.char2wordBB(idict['charBB'].copy(), ' '.join(itext))
                 res.append(idict.copy())
                 if viz:
@@ -727,3 +734,49 @@ class RendererV3(object):
                     if i < ninstance-1:
                         raw_input(colorize(Color.BLUE,'continue?',True))                    
         return res
+
+def nice_homography(H):
+    def _homographyBB(bbs, H, offset=None):
+        """
+        Apply homography transform to bounding-boxes.
+        BBS: 2 x 4 x n matrix  (2 coordinates, 4 points, n bbs).
+        Returns the transformed 2x4xn bb-array.
+
+        offset : a 2-tuple (dx,dy), added to points before transfomation.
+        """
+        eps = 1e-16
+        # check the shape of the BB array:
+        t,f,n = bbs.shape
+        assert (t==2) and (f==4)
+
+        # append 1 for homogenous coordinates:
+        bbs_h = np.reshape(np.r_[bbs, np.ones((1,4,n))], (3,4*n), order='F')
+        if offset != None:
+            bbs_h[:2,:] += np.array(offset)[:,None]
+
+        # perpective:
+        bbs_h = H.dot(bbs_h)
+        bbs_h /= (bbs_h[2,:]+eps)
+
+        bbs_h = np.reshape(bbs_h, (3,4,n), order='F')
+        return bbs_h[:2,:,:]
+
+    # Construct a bb0 (2x4x1), and transform it to bb. Just check the points order of bb0 and bb.
+    wordBB0 = np.array([[1,10,10,1], [10,10,20,20]]).reshape((2,4,1))
+    wordBB = _homographyBB(wordBB0.copy(), H)
+    wordBB0 = wordBB0[:,:,0]
+    wordBB = wordBB[:,:,0]
+    vec00 = wordBB0[:,3] - wordBB0[:,0]
+    vec01 = wordBB0[:,2] - wordBB0[:,1]
+    vec02 = wordBB0[:,1] - wordBB0[:,0]
+    vec03 = wordBB0[:,2] - wordBB0[:,3]
+    vec10 = wordBB[:,3] - wordBB[:,0]
+    vec11 = wordBB[:,2] - wordBB[:,1]
+    vec12 = wordBB[:,1] - wordBB[:,0]
+    vec13 = wordBB[:,2] - wordBB[:,3]
+    # I just check the vectors of corresponding pairs whether have the same orientation.
+    if np.dot(vec00, vec10) < 0 or np.dot(vec01, vec11) < 0 or np.dot(vec02, vec12) < 0 or np.dot(vec03, vec13) < 0:
+        clockwise = False
+    else:
+        clockwise = True
+    return clockwise
