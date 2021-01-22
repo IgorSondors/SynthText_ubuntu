@@ -160,8 +160,7 @@ class RenderFont(object):
                     if ch in short_ch:
                         short_h = ch_bounds.height
                         print('render_multiline', '\n','Буква ', ch, ' высота ', ch_bounds.height, 'все коорд', ch_bounds)
-                        print('Запоминаем высоту ', short_h)
-                        #pygame.draw.line(surf, red, (newrect.x, newrect.y+short_h), (newrect.x + newrect.w, newrect.y+short_h), 3)                    
+                        print('Запоминаем высоту ', short_h)                   
                     if ch in long_ch:
                         try:
                             print('render_multiline', '\n','Буква ', ch, ' старая высота ', ch_bounds.height, 'все коорд', ch_bounds)
@@ -234,6 +233,16 @@ class RenderFont(object):
         ch_bounds = font.render_to(surf, rect, word_text[mid_idx], rotation=rots[mid_idx])
         ch_bounds.x = rect.x + ch_bounds.x
         ch_bounds.y = rect.y - ch_bounds.y
+
+        short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
+        long_ch = 'друфцщДЦЩ'
+        capital_ch = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+        
+        if word_text[mid_idx] in short_ch:
+            short_h = ch_bounds.h
+            print('Буква ', word_text[mid_idx], ' высота ', ch_bounds.h, 'все коорд', ch_bounds)
+            print('Запоминаем высоту ', short_h)
+        
         #print(ch_bounds)
         mid_ch_bb = np.array(ch_bounds)
 
@@ -243,10 +252,6 @@ class RenderFont(object):
         last_rect = rect
         ch_idx = []
 
-        short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
-        long_ch = 'друфцщДЦЩ'
-        capital_ch = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-        
         for i in range(wl):
             #skip the middle character
             if i==mid_idx: 
@@ -285,8 +290,6 @@ class RenderFont(object):
                 print('bbrect', bbrect, ch)
             bbrect.x = newrect.x + bbrect.x
             bbrect.y = newrect.y - bbrect.y
-            bbs.append(np.array(bbrect))
-            last_rect = newrect
 
             if ch in short_ch:
                 short_h = bbrect.h
@@ -305,7 +308,10 @@ class RenderFont(object):
 
             if ch not in long_ch:
                 pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
-        
+
+            bbs.append(np.array(bbrect))
+            last_rect = newrect
+
         # correct the bounding-box order:
         bbs_sequence_order = [None for i in ch_idx]
         for idx,i in enumerate(ch_idx):
