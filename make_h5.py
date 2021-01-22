@@ -12,7 +12,32 @@ from common import *
 from synthgen import *
 from PIL import Image
 
-START_IMG_IDX = 8008
+folder1 = '/home/sondors/SynthText_ubuntu/results/1'
+folder2 = '/home/sondors/SynthText_ubuntu/results/2'
+folder_all_text_arr = '/home/sondors/SynthText_ubuntu/results/all_text_arr'
+
+f1 = next(os.walk(folder1))
+names1 = f1[2]
+for i in names1:
+    #print(i)
+    os.remove(os.path.join('/home/sondors/SynthText_ubuntu/results/1', i))
+
+
+f2 = next(os.walk(folder2))
+names2 = f2[2]
+for i in names2:
+    #print(i)
+    os.remove(os.path.join('/home/sondors/SynthText_ubuntu/results/2', i))
+
+
+f3 = next(os.walk(folder_all_text_arr))
+names3 = f3[2]
+for i in names3:
+    #print(i)
+    os.remove(os.path.join('/home/sondors/SynthText_ubuntu/results/folder_all_text_arr', i))
+
+
+START_IMG_IDX = 8000
 NUM_IMG = 1#-1
 
 INSTANCE_PER_IMAGE = 1

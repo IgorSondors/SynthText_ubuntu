@@ -49,6 +49,7 @@ def crop_safe(arr, rect, bbs=[], pad=0):
         for i in range(len(bbs)):
             bbs[i,0] -= v0[0]
             bbs[i,1] -= v0[1]
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/crop_safe-arr-7-arr-{}.jpg'.format(bbs), arr.swapaxes(0,1))    
         return arr, bbs
     else:
         return arr
@@ -134,11 +135,18 @@ class RenderFont(object):
         bbs = []
         space = font.get_rect('O')
         x, y = 0, 0
+        char_counter = -1
+        red = (0,0,255)
+        short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
+        long_ch = 'друфцщДЦЩ'
+        capital_ch = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+        
         for l in lines:
             x = 0 # carriage-return
             y += line_spacing # line-feed
 
             for ch in l: # render each character
+                char_counter = char_counter + 1
                 if ch.isspace(): # just shift
                     x += space.width
                 else:
@@ -147,11 +155,31 @@ class RenderFont(object):
                     ch_bounds.x = x + ch_bounds.x
                     ch_bounds.y = y - ch_bounds.y
                     x += ch_bounds.width
-                    bbs.append(np.array(ch_bounds))
+                    #bbs.append(np.array(ch_bounds))# Не изменяем ббокс в long_ch
+
+                    if ch in short_ch:
+                        short_h = ch_bounds.height
+                        print('render_multiline', '\n','Буква ', ch, ' высота ', ch_bounds.height, 'все коорд', ch_bounds)
+                        print('Запоминаем высоту ', short_h)
+                        #pygame.draw.line(surf, red, (newrect.x, newrect.y+short_h), (newrect.x + newrect.w, newrect.y+short_h), 3)                    
+                    if ch in long_ch:
+                        try:
+                            print('render_multiline', '\n','Буква ', ch, ' старая высота ', ch_bounds.height, 'все коорд', ch_bounds)
+                            ch_bounds.height = short_h
+                            print('render_multiline', '\n','Буква ', ch, ' новая высота ', short_h, 'все коорд', ch_bounds)
+                        except:
+                            print('render_multiline', '\n','Буква ', ch, ' высота ', ch_bounds.h, 'все коорд', ch_bounds)
+                        pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
+                    if ch not in long_ch:
+                        pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
+                    
+                    bbs.append(np.array(ch_bounds))# Изменяем ббокс в long_ch
+                    #pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
         rect_union = r0.unionall(bbs)
+        
 
         # get the words:
         words = ' '.join(text.split())
@@ -160,13 +188,16 @@ class RenderFont(object):
         bbs = np.array(bbs)
         surf_arr, bbs = crop_safe(pygame.surfarray.pixels_alpha(surf), rect_union, bbs, pad=5)
         surf_arr = surf_arr.swapaxes(0,1)
-        self.visualize_bb(surf_arr,bbs)
+
+        #self.visualize_bb(surf_arr,bbs)
         return surf_arr, words, bbs
 
     def render_curved(self, font, word_text, rendering_sample):
         """
         use curved baseline for rendering word
         """
+        red = (0,0,255)
+
         wl = len(word_text)
         isword = len(word_text.split())==1
 
@@ -179,7 +210,7 @@ class RenderFont(object):
         lbound = font.get_rect(word_text)
         fsize = (round(2.0*lbound.width), round(3*lspace))
         surf = pygame.Surface(fsize, pygame.locals.SRCALPHA, 32)
-        pygame.image.save(surf, '/home/sondors/SynthText_ubuntu/results/1/render_curved-surf-1-{}.jpg'.format(rendering_sample))
+        #pygame.image.save(surf, '/home/sondors/SynthText_ubuntu/results/1/render_curved-surf-1-{}.jpg'.format(rendering_sample))
 
 
         # baseline state
@@ -195,19 +226,27 @@ class RenderFont(object):
         #print('render_curved rect', rect)
         rect.centerx = surf.get_rect().centerx
         rect.centery = surf.get_rect().centery + rect.height
+
+        #pygame.draw.line(surf, red, rect.bottomleft, rect.bottomright), 3)
+
         rect.centery +=  curve[mid_idx]
+        
         ch_bounds = font.render_to(surf, rect, word_text[mid_idx], rotation=rots[mid_idx])
         ch_bounds.x = rect.x + ch_bounds.x
         ch_bounds.y = rect.y - ch_bounds.y
         #print(ch_bounds)
         mid_ch_bb = np.array(ch_bounds)
 
+        pygame.draw.line(surf, red, ch_bounds.bottomleft, ch_bounds.bottomright, 3)
+
         # render chars to the left and right:
         last_rect = rect
         ch_idx = []
 
         short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
-        long_ch = 'друфцщ'
+        long_ch = 'друфцщДЦЩ'
+        capital_ch = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+        
         for i in range(wl):
             #skip the middle character
             if i==mid_idx: 
@@ -227,45 +266,74 @@ class RenderFont(object):
             newrect.y = last_rect.y
             print('pygame newrect', newrect, 'of character', ch)
 
-            """if ch in short_ch:
+            if ch in short_ch:
                 short_h = newrect.h
-                print('Буква a высота ', short_h, 'все коорд', newrect)
-            
-            if ch in long_ch:
-                newrect.h = short_h
-                print('Буква р высота ', newrect.h, 'все коорд', newrect)"""
-            
+                print('Буква ', ch, ' высота ', newrect.h, 'все коорд', newrect)
+                print('Запоминаем высоту ', short_h)
+
             if i > mid_idx:
                 newrect.topleft = (last_rect.topright[0]+2, newrect.topleft[1])
             else:
                 newrect.topright = (last_rect.topleft[0]-2, newrect.topleft[1])
             newrect.centery = max(newrect.height, min(fsize[1] - newrect.height, newrect.centery + curve[i]))
+
             try:
                 bbrect = font.render_to(surf, newrect, ch, rotation=rots[i])
-                #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-bbrect-0-{}.jpg'.format(rendering_sample), bbrect)
+                print('bbrect rotation', bbrect, ch)
             except ValueError:
                 bbrect = font.render_to(surf, newrect, ch)
+                print('bbrect', bbrect, ch)
             bbrect.x = newrect.x + bbrect.x
             bbrect.y = newrect.y - bbrect.y
             bbs.append(np.array(bbrect))
             last_rect = newrect
+
+            if ch in short_ch:
+                short_h = bbrect.h
+                print('Буква ', ch, ' высота ', bbrect.h, 'все коорд', bbrect)
+                print('Запоминаем высоту ', short_h)
+
+            
+            if ch in long_ch:
+                try:
+                    print('Буква ', ch, ' старая высота ', bbrect.h, 'все коорд', bbrect)
+                    bbrect.h = short_h
+                    print('Буква ', ch, ' новая высота ', short_h, 'все коорд', bbrect)
+                except:
+                    print('Буква ', ch, ' высота ', bbrect.h, 'все коорд', bbrect)
+                pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
+
+            if ch not in long_ch:
+                pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
         
         # correct the bounding-box order:
         bbs_sequence_order = [None for i in ch_idx]
         for idx,i in enumerate(ch_idx):
             bbs_sequence_order[i] = bbs[idx]
+            
         bbs = bbs_sequence_order
+        print('bbs for line', bbs)
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
+        print('r0', type(r0))
+        print(r0)
         rect_union = r0.unionall(bbs)
+        print('type(rect_union)', type(rect_union))
+        print('(rect_union)', (rect_union))
         print('type(rect_union)', type(rect_union))
 
         # crop the surface to fit the text:
+    
+        image = pygame.surfarray.pixels_alpha(surf)
+        print('type(image)', type(image))
+
+        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/pygame.surfarray.pixels_alpha(surf)-0-{}.jpg'.format(rendering_sample), image)
+        
         bbs = np.array(bbs)
         surf_arr, bbs = crop_safe(pygame.surfarray.pixels_alpha(surf), rect_union, bbs, pad=5)
         surf_arr = surf_arr.swapaxes(0,1)
-        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-surf_arr-2-{}.jpg'.format(rendering_sample), surf_arr)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-surf_arr-2-{}.jpg'.format(rendering_sample), surf_arr)
         print('pygame bb', bbs)
         return surf_arr, word_text, bbs
 
