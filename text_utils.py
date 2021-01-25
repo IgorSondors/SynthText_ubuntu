@@ -168,12 +168,12 @@ class RenderFont(object):
                             print('render_multiline', '\n','Буква ', ch, ' новая высота ', short_h, 'все коорд', ch_bounds)
                         except:
                             print('render_multiline', '\n','Буква ', ch, ' высота ', ch_bounds.h, 'все коорд', ch_bounds)
-                        pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
+                        #pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
                     if ch not in long_ch:
-                        pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
+                        print(' ')
+                        #pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
                     
                     bbs.append(np.array(ch_bounds))# Изменяем ббокс в long_ch
-                    #pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
@@ -189,7 +189,9 @@ class RenderFont(object):
         surf_arr = surf_arr.swapaxes(0,1)
 
         #self.visualize_bb(surf_arr,bbs)
-        return surf_arr, words, bbs
+        center_rots, rots, is_render_multiline = [], [], True
+
+        return surf_arr, words, bbs,center_rots, rots, is_render_multiline
 
     def render_curved(self, font, word_text, rendering_sample):
         """
@@ -199,6 +201,8 @@ class RenderFont(object):
 
         wl = len(word_text)
         isword = len(word_text.split())==1
+
+        is_render_multiline = False
 
         # do curved iff, the length of the word <= 10
         if not isword or wl > 10 or np.random.rand() > self.p_curved:
@@ -220,13 +224,12 @@ class RenderFont(object):
         rots  = [-int(math.degrees(math.atan(BS['diff'](i-mid_idx)/(font.size/2)))) for i in range(wl)]
 
         bbs = []
+        center_rots = []
         # place middle char
         rect = font.get_rect(word_text[mid_idx])
         #print('render_curved rect', rect)
         rect.centerx = surf.get_rect().centerx
         rect.centery = surf.get_rect().centery + rect.height
-
-        #pygame.draw.line(surf, red, rect.bottomleft, rect.bottomright), 3)
 
         rect.centery +=  curve[mid_idx]
         
@@ -246,7 +249,7 @@ class RenderFont(object):
         #print(ch_bounds)
         mid_ch_bb = np.array(ch_bounds)
 
-        pygame.draw.line(surf, red, ch_bounds.bottomleft, ch_bounds.bottomright, 3)
+        #pygame.draw.line(surf, red, ch_bounds.bottomleft, ch_bounds.bottomright, 3)
 
         # render chars to the left and right:
         last_rect = rect
@@ -257,6 +260,7 @@ class RenderFont(object):
             if i==mid_idx: 
                 bbs.append(mid_ch_bb)
                 ch_idx.append(i)
+                center_rots.append(np.array([ch_bounds.centerx, ch_bounds.centery, ch_bounds.w, ch_bounds.h]))
                 continue
 
             if i < mid_idx: #left-chars
@@ -304,21 +308,26 @@ class RenderFont(object):
                     print('Буква ', ch, ' новая высота ', short_h, 'все коорд', bbrect)
                 except:
                     print('Буква ', ch, ' высота ', bbrect.h, 'все коорд', bbrect)
-                pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
+                #pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
 
             if ch not in long_ch:
-                pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
+                print(' ')
+                #pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
 
             bbs.append(np.array(bbrect))
+            center_rots.append(np.array([bbrect.centerx, bbrect.centery, bbrect.w, bbrect.h]))
             last_rect = newrect
 
         # correct the bounding-box order:
         bbs_sequence_order = [None for i in ch_idx]
+        center_rots_sequence_order = [None for i in ch_idx]
         for idx,i in enumerate(ch_idx):
             bbs_sequence_order[i] = bbs[idx]
+            center_rots_sequence_order[i] = center_rots[idx]
             
         bbs = bbs_sequence_order
-        print('bbs for line', bbs)
+        center_rots = center_rots_sequence_order
+        print('bbs for line', word_text, bbs)
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
@@ -337,11 +346,17 @@ class RenderFont(object):
         cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/pygame.surfarray.pixels_alpha(surf)-0-{}.jpg'.format(rendering_sample), image)
         
         bbs = np.array(bbs)
+        center_rots = np.array(center_rots)
         surf_arr, bbs = crop_safe(pygame.surfarray.pixels_alpha(surf), rect_union, bbs, pad=5)
+
         surf_arr = surf_arr.swapaxes(0,1)
         #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-surf_arr-2-{}.jpg'.format(rendering_sample), surf_arr)
-        print('pygame bb', bbs)
-        return surf_arr, word_text, bbs
+
+        print('bbs before', word_text, bbs_sequence_order)
+        print('bbs after', word_text, bbs)
+        print('bbs_center_rots before', word_text, center_rots)
+
+        return surf_arr, word_text, bbs, center_rots, rots, is_render_multiline
 
 
     def get_nline_nchar(self,mask_size,font_height,font_width):
@@ -402,18 +417,76 @@ class RenderFont(object):
         f_h = np.floor(h_min + h_range*rnd)
         return f_h
 
-    def bb_xywh2coords(self,bbs):
+    def bb_xywh2coords(self,bbs, center_rots, rots, is_render_multiline):
         """
         Takes an nx4 bounding-box matrix specified in x,y,w,h
         format and outputs a 2x4xn bb-matrix, (4 vertices per bb).
         """
+        def calc_new_xy(x0, y0, theta, x, y):
+            from math import pi
+            theta = (theta/180)*pi
+            x2 = x0+(x-x0)*math.cos(theta)+(y-y0)*math.sin(theta)
+            y2 = y0-(x-x0)*math.sin(theta)+(y-y0)*math.cos(theta)
+            return x2, y2
+
+        print('bbs = ', bbs)
+        print('center_rots = ', center_rots)
+        print('rots = ', rots)
+        print('is_render_multiline = ', is_render_multiline)
+        #is_render_multiline = True
         n,_ = bbs.shape
-        coords = np.zeros((2,4,n))
-        for i in range(n):
-            coords[:,:,i] = bbs[i,:2][:,None]
-            coords[0,1,i] += bbs[i,2]
-            coords[:,2,i] += bbs[i,2:4]
-            coords[1,3,i] += bbs[i,3]
+        print('n = ', n)
+        if is_render_multiline:
+            coords = np.zeros((2,4,n))
+            #print('bb_xywh2coords coords before bb', coords)
+            for i in range(n):
+                coords[:,:,i] = bbs[i,:2][:,None]
+                #print("coords[:,:,i]", coords[:,:,i])
+                coords[0,1,i] += bbs[i,2]
+                coords[:,2,i] += bbs[i,2:4]
+                coords[1,3,i] += bbs[i,3]
+        else:
+            adjusted_bbs = np.zeros((2,4,n))
+            print('adjusted_bbs = ', adjusted_bbs)
+
+            for i in range(n): #char numb
+                print(i)
+                x0 = center_rots[i][0]
+                y0 = center_rots[i][1]
+                theta = rots[i]
+
+                x = bbs[i][0]
+                y = bbs[i][1] + bbs[i][3]
+
+                topleft_x, topleft_y = calc_new_xy(x0, y0, theta, x, y)
+                adjusted_bbs[0][0][i] += int(topleft_x)
+                adjusted_bbs[1][0][i] += int(topleft_y)
+
+                x = bbs[i][0] + bbs[i][2]
+                y = bbs[i][1] + bbs[i][3]
+
+                topright_x, topright_y = calc_new_xy(x0, y0, theta, x, y)
+                adjusted_bbs[0][1][i] += int(topright_x)
+                adjusted_bbs[1][1][i] += int(topright_y)
+
+                x = bbs[i][0] + bbs[i][2]
+                y = bbs[i][1] #+ bbs[i][3]
+
+                bottomright_x, bottomright_y = calc_new_xy(x0, y0, theta, x, y)
+                adjusted_bbs[0][2][i] += int(bottomright_x)
+                adjusted_bbs[1][2][i] += int(bottomright_y)
+
+                x = bbs[i][0]
+                y = bbs[i][1] #+ bbs[i][3]
+
+                bottomleft_x, bottomleft_y = calc_new_xy(x0, y0, theta, x, y)
+                adjusted_bbs[0][3][i] += int(bottomleft_x)
+                adjusted_bbs[1][3][i] += int(bottomleft_y)
+
+            print('adjusted_bbs = ', adjusted_bbs)
+            coords = adjusted_bbs
+
+        print('bb_xywh2coords coords = ', coords)
         return coords
 
 
@@ -466,10 +539,11 @@ class RenderFont(object):
             print(colorize(Color.GREEN, text))
 
             # render the text:
-            txt_arr,txt,bb = self.render_curved(font, text, i)
+            txt_arr,txt,bb, center_rots, rots, is_render_multiline = self.render_curved(font, text, i)
             cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_sample-txt_arr-3-{}.jpg'.format(i), txt_arr)
 
-            bb = self.bb_xywh2coords(bb)
+            bb = self.bb_xywh2coords(bb, center_rots, rots, is_render_multiline)
+            
 
             # make sure that the text-array is not bigger than mask array:
             if np.any(np.r_[txt_arr.shape[:2]] > np.r_[mask.shape[:2]]):
