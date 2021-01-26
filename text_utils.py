@@ -220,9 +220,12 @@ class RenderFont(object):
         mid_idx = wl//2
         BS = self.baselinestate.get_sample()
         curve = [BS['curve'](i-mid_idx) for i in range(wl)]
+        print('curve = ', curve)
         curve[mid_idx] = -np.sum(curve) / (wl-1)
+        print('curve[mid_idx] = ', curve[mid_idx])
         rots  = [-int(math.degrees(math.atan(BS['diff'](i-mid_idx)/(font.size/2)))) for i in range(wl)]
-
+        #rots  = [0 for i in range(wl)]
+        print('rots = ', rots)
         bbs = []
         center_rots = []
         # place middle char
@@ -275,10 +278,10 @@ class RenderFont(object):
             newrect.y = last_rect.y
             print('pygame newrect', newrect, 'of character', ch)
 
-            if ch in short_ch:
+            """if ch in short_ch:
                 short_h = newrect.h
                 print('Буква ', ch, ' высота ', newrect.h, 'все коорд', newrect)
-                print('Запоминаем высоту ', short_h)
+                print('Запоминаем высоту ', short_h)"""
 
             if i > mid_idx:
                 newrect.topleft = (last_rect.topright[0]+2, newrect.topleft[1])
@@ -295,7 +298,10 @@ class RenderFont(object):
             bbrect.x = newrect.x + bbrect.x
             bbrect.y = newrect.y - bbrect.y
 
-            if ch in short_ch:
+            bbrect.w = newrect.w
+            #bbrect.h = newrect.h
+
+            """if ch in short_ch:
                 short_h = bbrect.h
                 print('Буква ', ch, ' высота ', bbrect.h, 'все коорд', bbrect)
                 print('Запоминаем высоту ', short_h)
@@ -312,7 +318,7 @@ class RenderFont(object):
 
             if ch not in long_ch:
                 print(' ')
-                #pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
+                #pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)"""
 
             bbs.append(np.array(bbrect))
             center_rots.append(np.array([bbrect.centerx, bbrect.centery, bbrect.w, bbrect.h]))
@@ -429,13 +435,13 @@ class RenderFont(object):
             y2 = y0-(x-x0)*math.sin(theta)+(y-y0)*math.cos(theta)
             return x2, y2
 
-        print('bbs = ', bbs)
-        print('center_rots = ', center_rots)
-        print('rots = ', rots)
-        print('is_render_multiline = ', is_render_multiline)
+        #print('bbs = ', bbs)
+        #print('center_rots = ', center_rots)
+        #print('rots = ', rots)
+        #print('is_render_multiline = ', is_render_multiline)
         #is_render_multiline = True
         n,_ = bbs.shape
-        print('n = ', n)
+        #print('n = ', n)
         if is_render_multiline:
             coords = np.zeros((2,4,n))
             #print('bb_xywh2coords coords before bb', coords)
@@ -447,7 +453,7 @@ class RenderFont(object):
                 coords[1,3,i] += bbs[i,3]
         else:
             adjusted_bbs = np.zeros((2,4,n))
-            print('adjusted_bbs = ', adjusted_bbs)
+            #print('adjusted_bbs = ', adjusted_bbs)
 
             for i in range(n): #char numb
                 print(i)
@@ -456,37 +462,37 @@ class RenderFont(object):
                 theta = rots[i]
 
                 x = bbs[i][0]
-                y = bbs[i][1] + bbs[i][3]
+                y = bbs[i][1]
 
                 topleft_x, topleft_y = calc_new_xy(x0, y0, theta, x, y)
                 adjusted_bbs[0][0][i] += int(topleft_x)
                 adjusted_bbs[1][0][i] += int(topleft_y)
 
                 x = bbs[i][0] + bbs[i][2]
-                y = bbs[i][1] + bbs[i][3]
+                y = bbs[i][1]
 
                 topright_x, topright_y = calc_new_xy(x0, y0, theta, x, y)
                 adjusted_bbs[0][1][i] += int(topright_x)
                 adjusted_bbs[1][1][i] += int(topright_y)
 
                 x = bbs[i][0] + bbs[i][2]
-                y = bbs[i][1] #+ bbs[i][3]
+                y = bbs[i][1] + bbs[i][3]
 
                 bottomright_x, bottomright_y = calc_new_xy(x0, y0, theta, x, y)
                 adjusted_bbs[0][2][i] += int(bottomright_x)
                 adjusted_bbs[1][2][i] += int(bottomright_y)
 
                 x = bbs[i][0]
-                y = bbs[i][1] #+ bbs[i][3]
+                y = bbs[i][1] + bbs[i][3]
 
                 bottomleft_x, bottomleft_y = calc_new_xy(x0, y0, theta, x, y)
                 adjusted_bbs[0][3][i] += int(bottomleft_x)
                 adjusted_bbs[1][3][i] += int(bottomleft_y)
 
-            print('adjusted_bbs = ', adjusted_bbs)
+            #print('adjusted_bbs = ', adjusted_bbs)
             coords = adjusted_bbs
 
-        print('bb_xywh2coords coords = ', coords)
+        #print('bb_xywh2coords coords = ', coords)
         return coords
 
 
