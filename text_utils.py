@@ -35,7 +35,6 @@ def crop_safe(arr, rect, bbs=[], pad=0):
     RECT: (x,y,w,h) : area to crop to
     BBS : nx4 xywh format bounding-boxes
     PAD : percentage to pad
-
     Does safe cropping. Returns the cropped rectangle and
     the adjusted bounding-boxes
     """
@@ -117,7 +116,6 @@ class RenderFont(object):
         font style FONT.
         A new line in text is denoted by \n, no other characters are 
         escaped. Other forms of white-spaces should be converted to space.
-
         returns the updated surface, words and the character bounding boxes.
         """
         # get the number of lines
@@ -134,46 +132,67 @@ class RenderFont(object):
 
         bbs = []
         space = font.get_rect('O')
+        small_char = font.get_rect('а')
+        capital_char = font.get_rect('А')
+
         x, y = 0, 0
-        char_counter = -1
         red = (0,0,255)
         short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
-        long_ch = 'друфцщДЦЩ'
+        long_ch = 'друфцщ'
         capital_ch = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+        numbers_ch = '0123456789'
         
         for l in lines:
             x = 0 # carriage-return
             y += line_spacing # line-feed
 
             for ch in l: # render each character
-                char_counter = char_counter + 1
                 if ch.isspace(): # just shift
                     x += space.width
                 else:
                     # render the character
-                    ch_bounds = font.render_to(surf, (x,y), ch)
-                    ch_bounds.x = x + ch_bounds.x
-                    ch_bounds.y = y - ch_bounds.y
-                    x += ch_bounds.width
-                    #bbs.append(np.array(ch_bounds))# Не изменяем ббокс в long_ch
+                    if ch in capital_ch:
+                        ch_bounds = font.render_to(surf, (x,y), ch)
+                        ch_bounds.x = x + ch_bounds.x
+                        ch_bounds.y = y - capital_char.y
+                        ch_bounds.height = capital_char.height
+                        x += ch_bounds.width
 
-                    if ch in short_ch:
-                        short_h = ch_bounds.height
-                        print('render_multiline', '\n','Буква ', ch, ' высота ', ch_bounds.height, 'все коорд', ch_bounds)
-                        print('Запоминаем высоту ', short_h)                   
-                    if ch in long_ch:
-                        try:
-                            print('render_multiline', '\n','Буква ', ch, ' старая высота ', ch_bounds.height, 'все коорд', ch_bounds)
-                            ch_bounds.height = short_h
-                            print('render_multiline', '\n','Буква ', ch, ' новая высота ', short_h, 'все коорд', ch_bounds)
-                        except:
-                            print('render_multiline', '\n','Буква ', ch, ' высота ', ch_bounds.h, 'все коорд', ch_bounds)
-                        #pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
-                    if ch not in long_ch:
-                        print(' ')
-                        #pygame.draw.line(surf, red, (ch_bounds.x, ch_bounds.y+ch_bounds.height), (ch_bounds.x + ch_bounds.width, ch_bounds.y+ch_bounds.height), 3)
-                    
-                    bbs.append(np.array(ch_bounds))# Изменяем ббокс в long_ch
+                    elif ch in short_ch:
+                        ch_bounds = font.render_to(surf, (x,y), ch)
+                        ch_bounds.x = x + ch_bounds.x
+                        bottomleft_y = y
+                        bottomright_y = y
+                        bottomleft_x = x
+                        bottomright_x = x + ch_bounds.width
+                        ch_bounds.bottomleft = (bottomleft_x, bottomleft_y)
+                        ch_bounds.bottomright = (bottomright_x, bottomright_y)
+                        
+                        ch_bounds.topleft = (bottomleft_x, bottomleft_y - ch_bounds.height)
+                        ch_bounds.topright = (bottomright_x, bottomright_y - ch_bounds.height)
+                        x += ch_bounds.width
+
+                    elif ch in long_ch:
+                        ch_bounds = font.render_to(surf, (x,y), ch)
+                        ch_bounds.x = x + ch_bounds.x
+                        ch_bounds.y = y - small_char.y
+                        ch_bounds.height = small_char.height
+                        x += ch_bounds.width
+
+                    elif ch in numbers_ch:
+                        ch_bounds = font.render_to(surf, (x,y), ch)
+                        ch_bounds.x = x + ch_bounds.x
+                        ch_bounds.y = y - space.y
+                        ch_bounds.height = space.height
+                        x += ch_bounds.width
+                    else:
+                        ch_bounds = font.render_to(surf, (x,y), ch)
+                        ch_bounds.x = x + ch_bounds.x
+                        ch_bounds.y = y - ch_bounds.y
+                        x += ch_bounds.width
+
+                        
+                    bbs.append(np.array(ch_bounds))
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
@@ -305,7 +324,6 @@ class RenderFont(object):
                 short_h = bbrect.h
                 print('Буква ', ch, ' высота ', bbrect.h, 'все коорд', bbrect)
                 print('Запоминаем высоту ', short_h)
-
             
             if ch in long_ch:
                 try:
@@ -315,14 +333,25 @@ class RenderFont(object):
                 except:
                     print('Буква ', ch, ' высота ', bbrect.h, 'все коорд', bbrect)
                 #pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)
-
             if ch not in long_ch:
                 print(' ')
                 #pygame.draw.line(surf, red, bbrect.bottomleft, bbrect.bottomright, 3)"""
 
             bbs.append(np.array(bbrect))
-            center_rots.append(np.array([bbrect.centerx, bbrect.centery, bbrect.w, bbrect.h]))
+            #center_rots.append(np.array([bbrect.centerx, bbrect.centery, bbrect.w, bbrect.h]))
             last_rect = newrect
+            if rots[i] > 0:
+                rots_x = bbrect.bottomright[0]
+                rots_y = bbrect.bottomright[1] + newrect.h
+                print('rots_x', rots_x)
+                print('rots_y', rots_y)
+                center_rots.append(np.array([rots_x, rots_y, ch_bounds.w, ch_bounds.h]))
+            if rots[i] < 0:
+                rots_x = bbrect.bottomleft[0]
+                rots_y = bbrect.bottomleft[1] + newrect.h
+                print('rots_x', rots_x)
+                print('rots_y', rots_y)
+                center_rots.append(np.array([rots_x, rots_y, ch_bounds.w, ch_bounds.h]))
 
         # correct the bounding-box order:
         bbs_sequence_order = [None for i in ch_idx]
@@ -545,7 +574,7 @@ class RenderFont(object):
             print(colorize(Color.GREEN, text))
 
             # render the text:
-            txt_arr,txt,bb, center_rots, rots, is_render_multiline = self.render_curved(font, text, i)
+            txt_arr,txt,bb, center_rots, rots, is_render_multiline = self.render_multiline(font, text)#self.render_curved(font, text, i)
             cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_sample-txt_arr-3-{}.jpg'.format(i), txt_arr)
 
             bb = self.bb_xywh2coords(bb, center_rots, rots, is_render_multiline)
