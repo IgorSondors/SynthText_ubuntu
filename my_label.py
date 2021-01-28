@@ -6,9 +6,10 @@ import numpy as np
 import h5py 
 from common import *
 import itertools
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 import re
-
+import matplotlib.pyplot as plt 
+import matplotlib.image as mpimg
 
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
@@ -30,13 +31,21 @@ def main(db_fname):
         # print("  ** text         : ", colorize(Color.GREEN, txt.encode('utf-8')))
 
         img = Image.fromarray(rgb, 'RGB')
-        img.save('results/my_label/images/'+k[:-2])
+        gray_image = ImageOps.grayscale(img)
+        #img.save('results/my_label/images/'+k[:-2])
+        gray_image.save('results/my_label/images/'+k[:-2])
+
+        #plt.close(1)
+        #plt.figure(1)
+        #plt.imshow(gray_image, cmap='gray', vmin=0, vmax=255)
+        #H,W = rgb.shape[:2]
 
         img_w, img_h = img.size[0], img.size[1]
         name_jpg = k
         chars_quantity = charBB.shape[-1]
-
-        my_ch_label.write(k[:-2] + ',' + str(img_h) + ',' + str(img_w))
+        num_dots_uder_ch = 30
+        
+        my_ch_label.write(k[:-2] + ',' + str(img_h) + ',' + str(img_w) + ',' + str(chars_quantity * num_dots_uder_ch))
 
         all_symbols = ''
         for j in range(len(txt)):
@@ -65,19 +74,48 @@ def main(db_fname):
             value_of_symbol = all_symbols[i]
 
             w_of_next_ch = ((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5
-
             h_of_next_ch = ((x_top_right - x_down_right)**2+(y_top_right - y_down_right)**2)**0.5
 
-            
             my_ch_label.write(',' + str(x_down_left) + ',' + str(y_down_left) + ',' + str(w_of_next_ch) + ',' + str(h_of_next_ch) + ',' + value_of_symbol)
 
+            x_plus_delta, y_plus_delta = kx_plus_b(x_down_left, y_down_left, x_down_right, y_down_right, num_dots_uder_ch)
+
+            #plt.plot(x_plus_delta, y_plus_delta, 'r.')
+
+            for j in range(num_dots_uder_ch):
+
+                my_ch_label.write(',' + str(x_plus_delta[j]) + ',' + str(y_plus_delta[j]) + ',' + str(w_of_next_ch) + ',' + str(h_of_next_ch) + ',' + value_of_symbol)
+        
         my_ch_label.write('\n')
+
+        #plt.gca().set_xlim([0,W-1])
+        #plt.gca().set_ylim([H-1,0])
+        #plt.show(block=False)
+        #plt.savefig('results/400/{}.png'.format(k), dpi= 'figure')
+        """if 'q' in input("next? ('q' to exit) : "):
+                break"""
+
 
     db.close()
 
-def kx_plus_b(x_down_left, y_down_left, x_down_right, y_down_right):
+def kx_plus_b(x_down_left, y_down_left, x_down_right, y_down_right, num_dots_uder_ch):
     k = (y_down_left - y_down_right)/(x_down_left - x_down_right)
+    b = y_down_left - k * x_down_left
+    delta_x = (x_down_right - x_down_left)/num_dots_uder_ch
+    x_plus_delta = []
+    y_plus_delta = []
+
+    next_x = x_down_left
+    next_y = y_down_left
+    for i in range(num_dots_uder_ch):
+        next_x = next_x + delta_x
+        next_y = k * next_x + b
+        x_plus_delta.append(next_x)
+        y_plus_delta.append(next_y)
+
+    return x_plus_delta, y_plus_delta
+
 
 
 if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/dset_alphabet.h5')
+    main('/home/sondors/SynthText_ubuntu/results/dset_500.h5')
