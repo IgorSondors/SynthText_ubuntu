@@ -33,6 +33,9 @@ h5py==2.10.0
 numpy==1.19.2
 scipy==1.5.4
 ```
+```
+python=3.6.12
+```
 ### Generate font model and char model
 ```
 python invert_font_size.py
