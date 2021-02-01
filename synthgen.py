@@ -239,6 +239,10 @@ def get_text_placement_mask(xyz,mask,plane,pad=2,viz=False):
     rect = cv2.minAreaRect(pts_fp[0].copy().astype('float32'))
     box = np.array(cv2.boxPoints(rect))
     R2d = su.unrotate2d(box.copy())
+    # # by lmy make cos(theta) > 0
+    if R2d[0][0] < 0:
+        R2d[0][0] = -R2d[0][0]
+        R2d[1][1] = -R2d[1][1]
     box = np.vstack([box,box[0,:]]) #close the box for visualization
 
     mu = np.median(pts_fp[0],axis=0)
@@ -280,7 +284,7 @@ def get_text_placement_mask(xyz,mask,plane,pad=2,viz=False):
         plt.imshow(mask)
         plt.subplot(1,2,2)
         plt.imshow(~place_mask)
-        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/place_mask.jpg', place_mask)
+        ##cv2.imwrite('/home/sondors/SynthText_ubuntu/results/place_mask.jpg', place_mask)
         for i in range(len(pts_fp_i32)):
             plt.scatter(pts_fp_i32[i][:,0],pts_fp_i32[i][:,1],
                         edgecolors='none',facecolor='g',alpha=0.5)
@@ -515,10 +519,10 @@ class RendererV3(object):
 
         # warp the object mask back onto the image:
         text_mask_orig = text_mask.copy()
-        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_orig-1-{}.jpg'.format(counter_of_instances), text_mask_orig)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_orig-1-{}.jpg'.format(counter_of_instances), text_mask_orig)
         bb_orig = bb.copy()
         text_mask = self.warpHomography(text_mask,H,rgb.shape[:2][::-1])
-        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-2-{}.jpg'.format(counter_of_instances), text_mask)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-2-{}.jpg'.format(counter_of_instances), text_mask)
 
         """print('text_mask before is ', len(text_mask), text_mask)
         print(type(text_mask))"""
@@ -534,14 +538,14 @@ class RendererV3(object):
 
         #feathering:
         text_mask = self.feather(text_mask, min_h)
-        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_feathered-3-{}.jpg'.format(counter_of_instances), text_mask)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_feathered-3-{}.jpg'.format(counter_of_instances), text_mask)
         
         
         """print('text_mask is ',len(text_mask), text_mask)
         print(type(text_mask))"""
 
         im_final = self.colorizer.color(rgb,[text_mask],np.array([min_h]))
-        cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/im_final-4-{}.jpg'.format(counter_of_instances), im_final)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/im_final-4-{}.jpg'.format(counter_of_instances), im_final)
         #im_final = rgb
 
         return im_final, text, bb, collision_mask
@@ -710,8 +714,8 @@ class RendererV3(object):
                     itext.append(text)
                     ibb.append(bb)
 
-                    cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-img-6-{}.jpg'.format(counter_of_instances), img)
-                    cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-collision_mask-5-{}.jpg'.format(counter_of_instances), collision_mask)
+                    #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-img-6-{}.jpg'.format(counter_of_instances), img)
+                    #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/render_text-collision_mask-5-{}.jpg'.format(counter_of_instances), collision_mask)
             if  placed:
                 # at least 1 word was placed in this instance:
                 idict['img'] = img
