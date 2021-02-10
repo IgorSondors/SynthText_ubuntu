@@ -121,7 +121,7 @@ class RenderFont(object):
         # get the number of lines
         lines = text.split('\n')
         lengths = [len(l) for l in lines]
-
+        print('pygame.version.ver = ', pygame.version.ver)
         # font parameters:
         line_spacing = font.get_sized_height() + 1
         
@@ -153,6 +153,7 @@ class RenderFont(object):
                     # render the character
                     if ch in capital_ch:
                         ch_bounds = font.render_to(surf, (x,y), ch)
+                        
                         ch_bounds.x = x + ch_bounds.x
                         ch_bounds.y = y - capital_char.y
                         ch_bounds.height = capital_char.height
@@ -160,8 +161,11 @@ class RenderFont(object):
 
                     elif ch in short_ch:
                         ch_bounds = font.render_to(surf, (x,y), ch)
+                        
                         ch_bounds.x = x + ch_bounds.x
-                        bottomleft_y = y
+                        ch_bounds.y = y - ch_bounds.y
+                        x += ch_bounds.width
+                        """bottomleft_y = y
                         bottomright_y = y
                         bottomleft_x = x
                         bottomright_x = x + ch_bounds.width
@@ -169,11 +173,12 @@ class RenderFont(object):
                         ch_bounds.bottomright = (bottomright_x, bottomright_y)
                         
                         ch_bounds.topleft = (bottomleft_x, bottomleft_y - ch_bounds.height)
-                        ch_bounds.topright = (bottomright_x, bottomright_y - ch_bounds.height)
-                        x += ch_bounds.width
+                        ch_bounds.topright = (bottomright_x, bottomright_y - ch_bounds.height)"""
+                        
 
                     elif ch in long_ch:
                         ch_bounds = font.render_to(surf, (x,y), ch)
+                        
                         ch_bounds.x = x + ch_bounds.x
                         ch_bounds.y = y - small_char.y
                         ch_bounds.height = small_char.height
@@ -181,17 +186,19 @@ class RenderFont(object):
 
                     elif ch in numbers_ch:
                         ch_bounds = font.render_to(surf, (x,y), ch)
+                        
                         ch_bounds.x = x + ch_bounds.x
                         ch_bounds.y = y - space.y
                         ch_bounds.height = space.height
                         x += ch_bounds.width
                     else:
                         ch_bounds = font.render_to(surf, (x,y), ch)
+                        
                         ch_bounds.x = x + ch_bounds.x
                         ch_bounds.y = y - ch_bounds.y
                         x += ch_bounds.width
 
-                        
+                    pygame.draw.rect(surf, pygame.Color(255, 0, 0), ch_bounds,1)    
                     bbs.append(np.array(ch_bounds))
 
         # get the union of characters for cropping:
@@ -631,7 +638,7 @@ class FontState(object):
     border = 0.25
     random_caps = -1 ## don't recapitalize : retain the capitalization of the lexicon
     capsmode = [str.lower, str.upper, str.capitalize]  # lower case, upper case, proper noun
-    curved = 0.2
+    curved = 0.0
     random_kerning = 0.2
     random_kerning_amount = 0.1
 

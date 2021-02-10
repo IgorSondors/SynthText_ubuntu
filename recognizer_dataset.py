@@ -1,18 +1,14 @@
-from __future__ import division
 import os
-import os.path as osp
 import numpy as np
-
+import math
 import h5py 
-from common import *
 import itertools
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageOps
 import re
-import matplotlib.pyplot as plt 
-import matplotlib.image as mpimg
 import cv2
-
 from sklearn.linear_model import LinearRegression
+
+from common import *
 
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
@@ -31,19 +27,17 @@ def main(db_fname):
         print("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print("  ** text         : ", colorize(Color.GREEN, txt))
-        # print("  ** text         : ", colorize(Color.GREEN, txt.encode('utf-8')))
-        #print('charBB', charBB)
-        img = Image.fromarray(rgb, 'RGB')
+
+        """img = Image.fromarray(rgb, 'RGB')
         gray_image = ImageOps.grayscale(img)
         #img.save('results/my_label/images/'+k[:-2])
-        gray_image.save('results/my_label/images/'+k[:-2])
+        gray_image.save('results/my_label/images/'+k[:-2])"""
 
-        img_w, img_h = img.size[0], img.size[1]
         name_jpg = k
         chars_quantity = charBB.shape[-1]
 
         pixel_step_x = 1
-        All_x_under_word, All_y_under_word, All_w_char_list, All_h_char_list, All_char_list = [], [], [], [], []
+        All_x_down_right_word, All_y_down_left_word, All_w_char_list, All_h_char_list, All_char_list = [], [], [], [], []
         
         all_symbols = ''
         new_txt = []
@@ -60,7 +54,6 @@ def main(db_fname):
         for j in range(len(new_txt)): #кол-во слов
             ochered = ochered + 1
             print('номер = ', j,  ' Слово = ', new_txt[j], ', кол-во букв = ', len(str(new_txt[j])),)
-            #for i in range(len(new_txt[j])):
             i = 0
             num_ch_per_w = len(str(new_txt[j])) #кол-во букв для данного слова
             x_down_left_word = []
@@ -109,110 +102,41 @@ def main(db_fname):
                     ochered = ochered + 1
             
             tg_alpha, b, model = lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word)
-            
-            
-            x_under_word, y_under_word, w_char_list, h_char_list, char_list = dot_per_pix_crop(tg_alpha, b, x_down_left_word, x_down_right_word, word, w_of_next_ch_word, h_of_next_ch_word, pixel_step_x, x_top_left_word, x_top_right_word, y_top_left_word, y_top_right_word, k, rgb)
-            
-            All_x_under_word = All_x_under_word + x_under_word
-            All_y_under_word = All_y_under_word + y_under_word
-            All_w_char_list = All_w_char_list + w_char_list
-            All_h_char_list = All_h_char_list + h_char_list
-            All_char_list = All_char_list + char_list
-
-        number_of_dots = len(All_x_under_word)
-
-        print(len(All_x_under_word), len(All_y_under_word), len(All_w_char_list), len(All_h_char_list), len(All_char_list))
-        
-        my_ch_label.write(k[:-2] + ',' + str(img_h) + ',' + str(img_w) + ',' + str(number_of_dots))
-
-        for z in range(number_of_dots):
-
-                my_ch_label.write(',' + str(All_x_under_word[z]) + ',' + str(All_y_under_word[z]) + ',' + (str(All_w_char_list[z])) + ',' + str(All_h_char_list[z]) + ',' + str(All_char_list[z]))
-            
-        my_ch_label.write('\n')
+                        
+            x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_word, 
+                                                                x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                                                                y_top_left_word, y_top_right_word)
 
     db.close()
     
-def dot_per_pix_crop(tg_alpha, b, x_down_left_word, x_down_right_word, word, w_of_next_ch_word, h_of_next_ch_word, pixel_step_x, x_top_left_word, x_top_right_word, y_top_left_word, y_top_right_word, k, rgb):
+def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_word, 
+                    x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                    y_top_left_word, y_top_right_word):
 
-    x_under_word, y_under_word = [], []
-    char_list = []
-    w_char_list, h_char_list = [], []
+    y_down_right_word, y_down_left_word = [], []
+    for i in x_down_left_word:
+        next_y = tg_alpha * i + b
+        y_down_left_word.append(next_y)
 
-    start_x = x_down_left_word[0]
-    end_x = x_down_right_word[-1]
+    for i in x_down_right_word:
+        next_y = tg_alpha * i + b
+        y_down_right_word.append(next_y)
 
-    print('len(word) = ', len(word), 'len(x_down_left_word) = ', len(x_down_left_word))
-    pixel_step_number = int((end_x - start_x)/pixel_step_x) + 1
-
-    if pixel_step_number >= 0:
-        for i in range(pixel_step_number):      
-            next_x = start_x + i
-            if next_x <= end_x + 1:
-                x_under_word.append(next_x)
-                next_y = tg_alpha * next_x + b
-                y_under_word.append(next_y)
-                
-                for j in range(len(word)):
-                    if  len(x_under_word) - 1 == len(char_list):
-                        if next_x >= x_down_left_word[j] and next_x <= x_down_right_word[j]: # between left and right edges of bbox or edge of bbox
-                            char_list.append(word[j])
-                            w_char_list.append(w_of_next_ch_word[j])
-                            h_char_list.append(h_of_next_ch_word[j])
-                        elif next_x >= x_down_right_word[-1]: # + pixel after right edge of word
-                            char_list.append(word[-1])
-                            w_char_list.append(w_of_next_ch_word[-1])
-                            h_char_list.append(h_of_next_ch_word[-1])
-                        elif next_x >= x_down_left_word[j] and next_x >= x_down_right_word[j] and next_x <= x_down_left_word[j+1]: # between two bboxes
-                            char_list.append(word[j+1])
-                            w_char_list.append(w_of_next_ch_word[j+1])
-                            h_char_list.append(h_of_next_ch_word[j+1])
-
-    x_top_left, x_top_right, y_top_left, y_top_right = x_top_left_word[0], x_top_right_word[-1] + 3, y_top_left_word[0] - 11, y_top_right_word[-1] - 11
-    x_down_left, x_down_right, y_down_left, y_down_right = x_under_word[0], x_under_word[-1] + 3, y_under_word[0] + 11, y_under_word[-1] + 11
-    w_of_word = 0
-    for i in w_of_next_ch_word:
-        w_of_word = w_of_word + int(i)
-    h_of_word = max(h_of_next_ch_word)
-    w_of_word = w_of_word 
-    b = int(b)
-    #   y = tg_alpha*x + b
+    x_top_left, x_top_right, y_top_left, y_top_right = int(x_top_left_word[0]), int(x_top_right_word[-1]) + 3, int(y_top_left_word[0]), int(y_top_right_word[-1])
+    x_down_left, x_down_right, y_down_left, y_down_right = int(x_down_left_word[0]), int(x_down_right_word[-1]) + 3, int(y_down_left_word[0]), int(y_down_right_word[-1])
     
+    img = rgb
+    #img = cv2.circle(img, (x_top_left, y_top_left), radius=0, color=(0, 0, 255), thickness=2)
+    #img = cv2.circle(img, (x_top_right, y_top_right), radius=0, color=(0, 0, 255), thickness=2)
+    #img = cv2.circle(img, (x_down_right, y_down_right), radius=0, color=(0, 0, 255), thickness=2)
+    #img = cv2.circle(img, (x_down_left, y_down_left), radius=0, color=(0, 0, 255), thickness=2)
 
-    if tg_alpha != 0:
-        import math
-        if tg_alpha < 0:
+    h_of_word = min(h_of_next_ch_word)
+    w_of_word = int(((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5)
 
-            tg_alpha = abs(tg_alpha)
-            alpha = math.atan(tg_alpha)
-
-            delta_b = 11
-            y_down_left, y_down_right = y_down_left + delta_b * math.cos(alpha), y_down_right + delta_b * math.cos(alpha)
-            x_down_left = x_down_left + delta_b * math.sin(alpha)
-            x_down_right = x_down_right + delta_b * math.sin(alpha)
-
-
-            delta_b = h_of_word + 11
-            y_top_left, y_top_right = y_top_left - delta_b * math.cos(alpha), y_top_right - delta_b * math.cos(alpha)
-            x_top_left = x_top_left - delta_b * math.sin(alpha)
-            x_top_right = x_top_right - delta_b * math.sin(alpha)
-
-        elif tg_alpha > 0:
-
-            tg_alpha = abs(tg_alpha)
-            alpha = math.atan(tg_alpha)
-
-            delta_b = 11
-            y_down_left, y_down_right = y_down_left + delta_b * math.cos(alpha), y_down_right + delta_b * math.cos(alpha)
-            x_down_left = x_down_left - delta_b * math.sin(alpha)
-            x_down_right = x_down_right - delta_b * math.sin(alpha)
-
-
-            delta_b = h_of_word + 11
-            y_top_left, y_top_right = y_top_left - delta_b * math.cos(alpha), y_top_right - delta_b * math.cos(alpha)
-            x_top_left = x_top_left + delta_b * math.sin(alpha)
-            x_top_right = x_top_right + delta_b * math.sin(alpha)
-
+    #y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right = transform_coord(tg_alpha, word,  
+    #                                                                                                        y_top_left, y_top_right, y_down_left, y_down_right, 
+    #                                                                                                        x_top_left, x_top_right, x_down_left, x_down_right)
 
     h_of_word_new = h_of_word + 22
 
@@ -221,27 +145,122 @@ def dot_per_pix_crop(tg_alpha, b, x_down_left_word, x_down_right_word, word, w_o
     #pts2 = np.float32([[0,0],[w_of_word,0],[w_of_word,h_of_word],[0,h_of_word]])
 
     M = cv2.getPerspectiveTransform(pts1,pts2)
-    img = rgb
     dst = cv2.warpPerspective(img,M,(w_of_word, h_of_word_new))
 
     w_of_word_new = w_of_word * 2
     #h_of_word_new = 32
-    dst_new = cv2.resize(dst, (w_of_word_new, h_of_word_new))
+    
+    #img = cv2.circle(img, (x_top_left, y_top_left), radius=0, color=(0, 255, 0), thickness=2)
+    #img = cv2.circle(img, (x_top_right, y_top_right), radius=0, color=(0, 255, 0), thickness=2)
+    #img = cv2.circle(img, (x_down_right, y_down_right), radius=0, color=(0, 255, 0), thickness=2)
+    #img = cv2.circle(img, (x_down_left, y_down_left), radius=0, color=(0, 255, 0), thickness=2)
+    cv2.imwrite("results/dots/{}_my.png".format(k[:-2]),img)
+    cv2.imwrite('results/my_words/{}__{}'.format(word, k[:-2]), dst)
 
-    cv2.imwrite('results/my_words/{}__{}'.format(word, k[:-2]), dst_new)
+    img_word = cv2.imread('results/my_words/{}__{}'.format(word, k[:-2]), 3)
 
-    img = cv2.imread('results/my_words/{}__{}'.format(word, k[:-2]), 3)
+    cv2.imwrite('results/my_words/{}__{}'.format(word, k[:-2]), img_word)
 
-    '''# Вертикальный отступ
-    img = cv2.vconcat([img, np.zeros((11, np.shape(img)[1], 3), dtype=np.uint8)])
-    img = cv2.vconcat([np.zeros((11, np.shape(img)[1], 3), dtype=np.uint8), img])'''
-    # Горизонтальный отступ
-    img = cv2.hconcat((img, np.zeros((np.shape(img)[0], 32, 3), dtype=np.uint8) ))
-    img = cv2.hconcat((np.zeros((np.shape(img)[0], 32, 3), dtype=np.uint8), img ))
+    coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                                                                y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
+                                                                w_of_next_ch_word, h_of_next_ch_word, M)
+    img_word = cv2.hconcat((img_word, np.zeros((np.shape(img_word)[0], 32, 3), dtype=np.uint8) ))
+    img_word = cv2.hconcat((np.zeros((np.shape(img_word)[0], 32, 3), dtype=np.uint8), img_word ))
+    for i in coordinates:
+        # Horizontal border
+        
+        img_word = cv2.circle(img_word, (i[0] + 32, i[1]), radius=0, color=(0, 0, 255), thickness=2)
+        
+        cv2.imwrite('results/my_words/{}__{}'.format(word, k[:-2]), img_word)
 
-    cv2.imwrite('results/my_words/{}__{}'.format(word, k[:-2]), img)
+    for i in coordinates_old:
+        # Horizontal border
+        
+        img = cv2.circle(img, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
+        
+        cv2.imwrite("results/dots/{}_my.png".format(k[:-2]),img)
 
-    return x_under_word, y_under_word, w_char_list, h_char_list, char_list
+    #dst_new = cv2.resize(dst, (w_of_word_new, h_of_word_new))
+    
+    return x_down_right_word, y_down_left_word
+
+def apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                                y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
+                                w_of_next_ch_word, h_of_next_ch_word, M):
+    
+    
+    """print('before:', x_top_left, y_top_left)
+    x_top_left, y_top_left = perspective_transform_coordinates(coordinates, M)
+    print('after:', x_top_left, y_top_left)
+
+    coordinates = [x_top_right, y_top_right]
+    print('before:', x_top_right, y_top_right)
+    x_top_right, y_top_right = perspective_transform_coordinates(coordinates, M)
+    print('after:', x_top_right, y_top_right)
+
+    coordinates = [x_down_left, y_down_left]
+    print('before:', x_down_left, y_down_left)
+    x_down_left, y_down_left = perspective_transform_coordinates(coordinates, M)
+    print('after:', x_down_left, y_down_left)
+
+    coordinates = [x_down_right, y_down_right]
+    print('before:', x_down_right, y_down_right)
+    x_down_right, y_down_right = perspective_transform_coordinates(coordinates, M)
+    print('after:', x_down_right, y_down_right)"""
+    coordinates = []
+    coordinates_old = []
+    for i in range(len(x_down_left_word)):
+
+        middle_x = (x_down_left_word[i] + x_down_right_word[i] + x_top_left_word[i] + x_top_right_word[i])/4
+        middle_y  = (y_down_left_word[i] + y_down_right_word[i] + y_top_left_word[i] + y_top_right_word[i])/4
+        coordinates_old.append((int(middle_x), int(middle_y)))
+        middle_x, middle_y = perspective_transform_coordinates([middle_x, middle_y], M)
+        coordinates.append((int(middle_x), int(middle_y)))
+    return coordinates, coordinates_old
+
+def transform_coord(tg_alpha, word,  y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right):    
+
+    print('Before')
+    print(word)
+    print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
+    [x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
+    
+    delta_b = 11
+
+    if tg_alpha != 0:
+        print('tg_alpha != 0:',word, tg_alpha)
+        if tg_alpha < 0:
+            tg_alpha = abs(tg_alpha)
+            alpha = math.atan(tg_alpha)
+
+            y_down_left, y_down_right = int(y_down_left + delta_b * math.cos(alpha)), int(y_down_right + delta_b * math.cos(alpha))
+            x_down_left = int(x_down_left +  delta_b * math.sin(alpha))
+            x_down_right = int(x_down_right +  delta_b * math.sin(alpha))
+
+            y_top_left, y_top_right = int(y_top_left - delta_b * math.cos(alpha)), int(y_top_right - delta_b * math.cos(alpha))
+            x_top_left = int(x_top_left -  delta_b * math.sin(alpha))
+            x_top_right = int(x_top_right -  delta_b * math.sin(alpha))
+
+        elif tg_alpha > 0:
+            tg_alpha = abs(tg_alpha)
+            alpha = math.atan(tg_alpha)
+
+            y_down_left, y_down_right = int(y_down_left + delta_b * math.cos(alpha)), int(y_down_right + delta_b * math.cos(alpha))
+            x_down_left = int(x_down_left -  delta_b * math.sin(alpha))
+            x_down_right = int(x_down_right -  delta_b * math.sin(alpha))
+
+            y_top_left, y_top_right = int(y_top_left - delta_b * math.cos(alpha)), int(y_top_right - delta_b * math.cos(alpha))
+            x_top_left = int(x_top_left +  delta_b * math.sin(alpha))
+            x_top_right = int(x_top_right +  delta_b * math.sin(alpha))
+    else:
+        y_top_left, y_top_right, y_down_left, y_down_right = y_top_left - delta_b, y_top_right - delta_b, y_down_left + delta_b, y_down_right + delta_b
+    print('After')
+    print(word)
+    print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
+    [x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
+
+    return y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right
+
 
 def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word):
     x = np.array(x_down_left_word + x_down_right_word).reshape((-1, 1))
@@ -253,6 +272,28 @@ def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_
     k = model.coef_[0]
     b = model.intercept_
     return k, b, model
+
+def perspective_transform_coordinates(coordinates, m_matrix):
+    """
+    Function Description: Apply perspective transformation to coordinates.
+    Parameters:
+    Return Value:
+    Exception Description:
+    Change History:
+    2020-07-30 12:00 function created.
+    """
+    """center = (0, 0)
+    newrow = [0, 0, 1]
+    r_matrix = cv2.getRotationMatrix2D(center, 0.0, 1.0)
+    r_matrix = np.vstack([r_matrix, newrow])
+    m_matrix = np.dot(M, r_matrix)"""
+
+    # Perform the actual coordinates processing
+    coordinates.append(1)
+    new_coordinates = np.dot(m_matrix, coordinates)
+    new_coordinates[0] = round(new_coordinates[0] / new_coordinates[2], 1)
+    new_coordinates[1] = round(new_coordinates[1] / new_coordinates[2], 1)
+    return new_coordinates[:2]
 
 if __name__=='__main__':
     main('/home/sondors/SynthText_ubuntu/results/1.h5')
