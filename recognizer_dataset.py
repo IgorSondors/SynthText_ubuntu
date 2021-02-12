@@ -29,10 +29,16 @@ def main(db_fname):
         print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print("  ** text         : ", colorize(Color.GREEN, txt))
 
-        img = Image.fromarray(rgb, 'RGB')
-        #gray_image = ImageOps.grayscale(img)
-        img.save('results/my_images/'+k[:-2])
-        #gray_image.save('results/my_label/images/'+k[:-2])
+        """pil_image = Image.fromarray(rgb, 'RGB')
+        gray_image = ImageOps.grayscale(pil_image)
+        gray_image.save('results/my_images/'+k[:-2])"""
+
+        open_cv_image = np.array(rgb) 
+        img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
+        cv2.imwrite('results/my_images/'+k[:-2], img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        #cv2.imwrite('results/my_images/'+k[:-2], img_gray)
+        #cv2.imwrite('results/my_images/'+k[:-6]+'.png', img_gray)
+        rgb = img_gray
 
         name_jpg = k
         chars_quantity = charBB.shape[-1]
@@ -71,7 +77,7 @@ def main(db_fname):
             while i < num_ch_per_w:
                 i = i + 1
 
-                print('Буква = ', all_symbols[ochered])
+                #print('Буква = ', all_symbols[ochered])
 
                 x_down_left = charBB[0][3][ochered]
                 y_down_left = charBB[1][3][ochered]
@@ -105,12 +111,12 @@ def main(db_fname):
                     ochered = ochered + 1
             
             tg_alpha, b, model = lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word)
-            try:            
-                x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
-                                                                    x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
-                                                                    y_top_left_word, y_top_right_word)
-            except:
-                print('Bad word!!!', '\n', word)
+            #try:            
+            x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
+                                                                x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                                                                y_top_left_word, y_top_right_word)
+            #except:
+            #    print('Bad word!!!', '\n', word)
             my_ch_label.write('\n')
     db.close()
     
@@ -142,41 +148,40 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
                                                                                                         y_top_left, y_top_right, y_down_left, y_down_right, 
                                                                                                         x_top_left, x_top_right, x_down_left, x_down_right)
 
-    h_of_word_new = h_of_word + delta_b1 + delta_b2
+    h_of_word = h_of_word + delta_b1 + delta_b2
 
-    pts1 = np.float32([[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left]])
-    pts2 = np.float32([[0,0],[w_of_word,0],[w_of_word,h_of_word_new],[0,h_of_word_new]])
-    #pts2 = np.float32([[0,0],[w_of_word,0],[w_of_word,h_of_word],[0,h_of_word]])
-
-    M = cv2.getPerspectiveTransform(pts1,pts2)
-    dst = cv2.warpPerspective(img,M,(int(w_of_word), int(h_of_word_new)))
-
-    w_of_word_new = w_of_word * 2
-    h_of_word_new = 32
-
-    print('word = ',word)
-    Rx = w_of_word_new / w_of_word
-    Ry = h_of_word_new / h_of_word_new
     
-    print('Rx =', Rx)
+    print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
     
-    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), dst)
+    width = w_of_word
+    height = 32
+    height_div = height/int(h_of_word)
+    height_div = 1
+    width = int(width * height_div) * 2
 
-    img_word = cv2.imread('results/my_words/{}_{}.jpg'.format(k[:-6], j), 3)
+    src_pts =  np.array([[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left]], dtype="float32")
+    dst_pts = np.array([[0, 0],[width-1, 0],[width-1, height-1],[0, height-1]], dtype="float32")
+    #the perspective transformation matrix
+    M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+    #directly warp the rotated rectangle to get the straightened rectangle
+    dst = cv2.warpPerspective(img, M, (width, height))
 
-    resized_img_word = cv2.resize(img_word, (int(w_of_word_new), int(h_of_word_new)))
+    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), dst, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+
+    img_word = cv2.imread('results/my_words/{}_{}.jpg'.format(k[:-6], j), 1)
+
+    resized_img_word = img_word
     resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8) ))
     resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8), resized_img_word ))
 
-    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), resized_img_word)
+    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
                                                                 w_of_next_ch_word, h_of_next_ch_word, M)
-    #img_word = cv2.hconcat((img_word, np.zeros((np.shape(img_word)[0], 32, 3), dtype=np.uint8) ))
-    #img_word = cv2.hconcat((np.zeros((np.shape(img_word)[0], 32, 3), dtype=np.uint8), img_word ))
 
-    #print('img_word.shape = ', img_word.shape)
+    print('after transformations:', '\n', 'width = ', str(img_word.shape[1]), 'height = ', str(img_word.shape[0]))
+    print('after np zeros:', '\n', 'width = ', str(resized_img_word.shape[1]), 'height = ', str(resized_img_word.shape[0]))
     my_ch_label.write(',' + str(img_word.shape[0]) + ',' + str(img_word.shape[1]))
 
     ch_code = []
@@ -194,7 +199,6 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     Для любого положения в слове буквенного символа
     1 - 1 если заглавная буква
     Все кроме букв: только бит по первому символу
-
     Слово "Привет"
     Буква "П":
     2**0 (первая буква) + 2**1 (заглавная буква) + 2**3 (русское слово) = 11
@@ -213,22 +217,22 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
 
     for i in range(len(coordinates)):
         # Horizontal border
-        my_ch_label.write(',' + str(coordinates[i][0]* Rx + 32) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
+        my_ch_label.write(',' + str(coordinates[i][0] + 32) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
             
         #img_word = cv2.circle(img_word, (coordinates[i][0] + 32, coordinates[i][1]), radius=0, color=(0, 0, 255), thickness=2)
 
-        resized_img_word = cv2.circle(resized_img_word, (int(coordinates[i][0] * Rx + 32), 16), radius=0, color=(0, 0, 255), thickness=2)
+        resized_img_word = cv2.circle(resized_img_word, (int(coordinates[i][0] + 32), 16), radius=0, color=(0, 0, 255), thickness=2)
         
-        #cv2.imwrite('results/my_words/{}_{}'.format(k[:-2], j), img_word)
-        #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word)
-        cv2.imwrite('results/dots_word/{}_{}_{}.jpg'.format(k[:-6], j, word), resized_img_word)
+        #cv2.imwrite('results/my_words/{}_{}'.format(k[:-2], j), img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('results/dots_word/{}_{}_{}.jpg'.format(k[:-6], j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     """for i in coordinates_old: # Very slow
         # Horizontal border
         
         img = cv2.circle(img, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
         
-        cv2.imwrite("results/dots/{}_my.png".format(k[:-2]),img)"""
+        cv2.imwrite("results/dots/{}_my.png".format(k[:-2]),img, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
     
     return x_down_right_word, y_down_left_word
 
@@ -248,10 +252,10 @@ def apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left
 
 def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right):    
 
-    print('Before')
-    print(word)
-    print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
-    [x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
+    #print('Before')
+    #print(word)
+    #print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
+    #[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
     
     delta_b = 11
     delta_b1 = (random.randint(3000, 8000)) / 10000 * h_of_word
@@ -259,7 +263,7 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
     
 
     if tg_alpha != 0:
-        print('tg_alpha != 0:',word, tg_alpha)
+        #print('tg_alpha != 0:',word, tg_alpha)
         if tg_alpha < 0:
             tg_alpha = abs(tg_alpha)
             alpha = math.atan(tg_alpha)
@@ -285,10 +289,10 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
             x_top_right = int(x_top_right +  delta_b2 * math.sin(alpha))
     else:
         y_top_left, y_top_right, y_down_left, y_down_right = y_top_left - delta_b2, y_top_right - delta_b2, y_down_left + delta_b1, y_down_right + delta_b1
-    print('After')
-    print(word)
-    print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
-    [x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
+    #print('After')
+    #print(word)
+    #print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
+    #[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
 
     return y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right, delta_b1, delta_b2
 
@@ -298,8 +302,8 @@ def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_
     y = np.array(y_down_left_word + y_down_right_word)
 
     model = LinearRegression().fit(x, y)
-    print('intercept:', model.intercept_)
-    print('slope:', model.coef_)
+    #print('intercept:', model.intercept_)
+    #print('slope:', model.coef_)
     k = model.coef_[0]
     b = model.intercept_
     return k, b, model
@@ -325,6 +329,6 @@ def perspective_transform_coordinates(coordinates, m_matrix):
     new_coordinates[0] = round(new_coordinates[0] / new_coordinates[2], 1)
     new_coordinates[1] = round(new_coordinates[1] / new_coordinates[2], 1)
     return new_coordinates[:2]
-
-if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/30.h5')
+    
+if __name__=='__main__':   
+    main('/home/sondors/SynthText_ubuntu/results/10.h5')
