@@ -16,7 +16,7 @@ def main(db_fname):
     dsets = sorted(db['data'].keys())
     print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
 
-    my_ch_label = open('results/my.csv', 'a')
+    my_ch_label = open('results/ds_images.csv', 'a')
     
     for k in dsets:
         rgb = db['data'][k][...]
@@ -35,7 +35,7 @@ def main(db_fname):
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-        cv2.imwrite('results/my_images/'+k[:-2], img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('results/my_images/'+k[:-6]+'.jpg', img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         #cv2.imwrite('results/my_images/'+k[:-2], img_gray)
         #cv2.imwrite('results/my_images/'+k[:-6]+'.png', img_gray)
         rgb = img_gray
@@ -182,7 +182,7 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
 
     print('after transformations:', '\n', 'width = ', str(img_word.shape[1]), 'height = ', str(img_word.shape[0]))
     print('after np zeros:', '\n', 'width = ', str(resized_img_word.shape[1]), 'height = ', str(resized_img_word.shape[0]))
-    my_ch_label.write(',' + str(img_word.shape[0]) + ',' + str(img_word.shape[1]))
+    my_ch_label.write(',' + str(resized_img_word.shape[0]) + ',' + str(resized_img_word.shape[1]))
 
     ch_code = []
     short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
@@ -331,4 +331,4 @@ def perspective_transform_coordinates(coordinates, m_matrix):
     return new_coordinates[:2]
     
 if __name__=='__main__':   
-    main('/home/sondors/SynthText_ubuntu/results/10.h5')
+    main('/home/sondors/SynthText_ubuntu/results/200.h5')
