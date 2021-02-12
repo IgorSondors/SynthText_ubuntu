@@ -314,11 +314,11 @@ def viz_masks(fignum,rgb,seg,depth,label):
         rgb_rand = (255*np.random.rand(3)).astype('uint8')
         img[mask] = rgb_rand[None,None,:] 
 
-    import imageio
+    """import imageio
     imageio.imwrite('results/seg.png', mim)
     imageio.imwrite('results/depth.png', depth)
     imageio.imwrite('results/txt.png', rgb)
-    imageio.imwrite('results/reg.png', img)
+    imageio.imwrite('results/reg.png', img)"""
 
     plt.close(fignum)
     plt.figure(fignum)
@@ -400,16 +400,27 @@ class RendererV3(object):
                 #Hs.append(H)
                 #Hinvs.append(Hinv)
                 #filt[idx] = True
-
-            if nice_homography(Hinv):
-                masks.append(mask)
-                Hs.append(H)
-                Hinvs.append(Hinv)
-                filt[idx] = True
+                print('xyz = ', xyz)
+                print('res = ', res)
+                print('mask = ', mask)
+                print('H = ', H)
+                print('!!! Hinv = ', Hinv)
+                print('type(Hinv) = ', type(Hinv))
+                if nice_homography(Hinv):
+                    print('Nice homography!!!','\n', Hinv)
+                    masks.append(mask)
+                    Hs.append(H)
+                    Hinvs.append(Hinv)
+                    filt[idx] = True
+                else:
+                    print('bad homography filtered!!!', '\n', 'Hinv = ', Hinv)
         regions = self.filter_regions(regions,filt)
         regions['place_mask'] = masks
         regions['homography'] = Hs
         regions['homography_inv'] = Hinvs
+        print(len(masks),len(Hs),len(Hinvs))
+        print('Hinvs = ', Hinvs)
+
 
         return regions
 
@@ -524,8 +535,8 @@ class RendererV3(object):
         text_mask = self.warpHomography(text_mask,H,rgb.shape[:2][::-1])
         #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-2-{}.jpg'.format(counter_of_instances), text_mask)
 
-        """print('text_mask before is ', len(text_mask), text_mask)
-        print(type(text_mask))"""
+        """print ('text_mask before is ', len(text_mask), text_mask)
+        print (type(text_mask))"""
 
         bb = self.homographyBB(bb,Hinv)
 
@@ -541,8 +552,8 @@ class RendererV3(object):
         #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_feathered-3-{}.jpg'.format(counter_of_instances), text_mask)
         
         
-        """print('text_mask is ',len(text_mask), text_mask)
-        print(type(text_mask))"""
+        """print ('text_mask is ',len(text_mask), text_mask)
+        print (type(text_mask))"""
 
         im_final = self.colorizer.color(rgb,[text_mask],np.array([min_h]))
         #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/im_final-4-{}.jpg'.format(counter_of_instances), im_final)
@@ -577,11 +588,11 @@ class RendererV3(object):
         
         for i in range(len(wrds)):
             cc = charBB[:,:,bb_idx[i]:bb_idx[i+1]]
-            #print('cc is ', cc)
+            #print ('cc is ', cc)
             # fit a rotated-rectangle:
             # change shape from 2x4xn_i -> (4*n_i)x2
             cc = np.squeeze(np.concatenate(np.dsplit(cc,cc.shape[-1]),axis=1)).T.astype('float32')
-
+            #print ('cc = ', cc)
             rect = cv2.minAreaRect(cc.copy())
             box = np.array(cv2.boxPoints(rect))
 
@@ -598,6 +609,9 @@ class RendererV3(object):
                 d = np.sum(np.linalg.norm(box[perm4[pidx],:]-cc_tblr,axis=1))
                 dists.append(d)
             wordBB[:,:,i] = box[perm4[np.argmin(dists)],:].T
+        #print ('text = ', text)
+        #print ('charBB = ', charBB)
+        #print ('wordBB = ', wordBB)
 
         return wordBB
 
@@ -638,7 +652,7 @@ class RendererV3(object):
 
             # find the placement mask and homographies:
             regions = self.filter_for_placement(xyz,seg,regions)
-            #print('regions это', regions)
+            #print ('regions это', regions)
 
             # finally place some text:
             nregions = len(regions['place_mask'])
@@ -658,7 +672,7 @@ class RendererV3(object):
             
             place_masks = copy.deepcopy(regions['place_mask'])
 
-            #print('place_masks to image', place_masks)
+            #print ('place_masks to image', place_masks)
             #print (colorize(Color.CYAN, " ** instance # : %d"%i))
 
             idict = {'img':[], 'charBB':None, 'wordBB':None, 'txt':None}
@@ -680,11 +694,11 @@ class RendererV3(object):
             for idx in reg_range:
                 counter_of_instances = counter_of_instances + 1
                 ireg = reg_idx[idx]
-                """print('ireg', ireg)
-                print('place_masks[ireg]', place_masks[ireg], 'place_masks[ireg] len', len(place_masks[ireg]), 'place_masks[ireg][0] len', len(place_masks[ireg][0]))
-                print("regions['homography'][ireg]", (regions['homography'][ireg]))
-                print("regions['homography_inv'][ireg] len", len(regions['homography_inv'][ireg]))
-                print("regions['homography_inv'][ireg]", regions['homography_inv'][ireg])"""
+                """print ('ireg', ireg)
+                print ('place_masks[ireg]', place_masks[ireg], 'place_masks[ireg] len', len(place_masks[ireg]), 'place_masks[ireg][0] len', len(place_masks[ireg][0]))
+                print ("regions['homography'][ireg]", (regions['homography'][ireg]))
+                print ("regions['homography_inv'][ireg] len", len(regions['homography_inv'][ireg]))
+                print ("regions['homography_inv'][ireg]", regions['homography_inv'][ireg])"""
                 
                 try:
                     if self.max_time is None:
@@ -720,15 +734,15 @@ class RendererV3(object):
                 # at least 1 word was placed in this instance:
                 idict['img'] = img
                 idict['txt'] = itext
-                #print('len(itext)', itext)
+                #print ('len(itext)', itext)
                 idict['charBB'] = np.concatenate(ibb, axis=2)
-                """print('len(ibb)', len(ibb))
-                print("len(idict['charBB'])", len(idict['charBB']))
-                print("len(idict['charBB'][0])", len(idict['charBB'][0]))
-                print("len(idict['charBB'][1])", len(idict['charBB'][1]))
+                """print ('len(ibb)', len(ibb))
+                print ("len(idict['charBB'])", len(idict['charBB']))
+                print ("len(idict['charBB'][0])", len(idict['charBB'][0]))
+                print ("len(idict['charBB'][1])", len(idict['charBB'][1]))
 
-                print('ibb', ibb)
-                print("idict['charBB']", idict['charBB'])"""
+                print ('ibb', ibb)
+                print ("idict['charBB']", idict['charBB'])"""
                 idict['wordBB'] = self.char2wordBB(idict['charBB'].copy(), ' '.join(itext))
                 res.append(idict.copy())
                 if viz:
@@ -764,7 +778,22 @@ def nice_homography(H):
 
         bbs_h = np.reshape(bbs_h, (3,4,n), order='F')
         return bbs_h[:2,:,:]
+    def test_slice(m):
+        slice_x = 2
+        slice_y = 2
 
+        width = len(m[0])
+        height = len(m)
+        slices = []
+        for i in range(0, height - slice_y + 1):
+            for j in range(0, width - slice_x + 1):
+                slices.append(
+                    [
+                        [m[a][b] for b in range(j, j + slice_x)]
+                        for a in range(i, i + slice_y)
+                    ]
+                )
+        return np.linalg.det(slices[0])
     # Construct a bb0 (2x4x1), and transform it to bb. Just check the points order of bb0 and bb.
     wordBB0 = np.array([[1,10,10,1], [10,10,20,20]]).reshape((2,4,1))
     wordBB = _homographyBB(wordBB0.copy(), H)
@@ -782,5 +811,7 @@ def nice_homography(H):
     if np.dot(vec00, vec10) < 0 or np.dot(vec01, vec11) < 0 or np.dot(vec02, vec12) < 0 or np.dot(vec03, vec13) < 0:
         clockwise = False
     else:
-        clockwise = True
+        clockwise = False
+        if test_slice(H) > 0:
+            clockwise = True
     return clockwise
