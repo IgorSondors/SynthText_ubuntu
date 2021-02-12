@@ -66,7 +66,7 @@ def main(db_fname):
             h_of_next_ch_word = []
 
             x_top_left_word, x_top_right_word, y_top_left_word, y_top_right_word = [], [], [], []
-            my_ch_label.write(k[:-2]+'_{}'.format(j))
+            my_ch_label.write(k[:-6]+'_{}.jpg'.format(j))
 
             while i < num_ch_per_w:
                 i = i + 1
@@ -133,10 +133,6 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     y_down_left, y_down_right = int(y_down_left_word[0]), int(y_down_right_word[-1])
     
     img = rgb
-    #img = cv2.circle(img, (x_top_left, y_top_left), radius=0, color=(0, 0, 255), thickness=2)
-    #img = cv2.circle(img, (x_top_right, y_top_right), radius=0, color=(0, 0, 255), thickness=2)
-    #img = cv2.circle(img, (x_down_right, y_down_right), radius=0, color=(0, 0, 255), thickness=2)
-    #img = cv2.circle(img, (x_down_left, y_down_left), radius=0, color=(0, 0, 255), thickness=2)
 
     h_of_word = min(h_of_next_ch_word)
     w_of_word = (((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5)
@@ -163,20 +159,16 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     Ry = h_of_word_new / h_of_word_new
     
     print('Rx =', Rx)
-    #img = cv2.circle(img, (x_top_left, y_top_left), radius=0, color=(0, 255, 0), thickness=2)
-    #img = cv2.circle(img, (x_top_right, y_top_right), radius=0, color=(0, 255, 0), thickness=2)
-    #img = cv2.circle(img, (x_down_right, y_down_right), radius=0, color=(0, 255, 0), thickness=2)
-    #img = cv2.circle(img, (x_down_left, y_down_left), radius=0, color=(0, 255, 0), thickness=2)
     
-    cv2.imwrite('results/my_words/{}_{}'.format(k[:-2], j), dst)
+    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), dst)
 
-    img_word = cv2.imread('results/my_words/{}_{}'.format(k[:-2], j), 3)
+    img_word = cv2.imread('results/my_words/{}_{}.jpg'.format(k[:-6], j), 3)
 
     resized_img_word = cv2.resize(img_word, (int(w_of_word_new), int(h_of_word_new)))
     resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8) ))
     resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8), resized_img_word ))
 
-    #cv2.imwrite('results/my_words/{}_{}'.format(k[:-2], j), img_word)
+    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), resized_img_word)
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
@@ -188,15 +180,40 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     my_ch_label.write(',' + str(img_word.shape[0]) + ',' + str(img_word.shape[1]))
 
     ch_code = []
+    short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
+    long_ch = 'друфцщ'
+    capital_ch = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+    numbers_ch = '0123456789'
+    '''
+    Биты:
+    Относятся только к первой букве слова
+    0 - 1 если буква первая в слове
+    2 - 1 если перевернуто ли слово()
+    3 - 1 если слово русское
+    4 - 1 если слово английское
+    Для любого положения в слове буквенного символа
+    1 - 1 если заглавная буква
+    Все кроме букв: только бит по первому символу
+
+    Слово "Привет"
+    Буква "П":
+    2**0 (первая буква) + 2**1 (заглавная буква) + 2**3 (русское слово) = 11
+    Буква "р":
+    0 (тк не заглавная буква) и тд
+    '''
     for i in word:
-        code = ''
+        code = 0
         if i == word[0]:
-            code = code + str()
+            code = code + 2**0
+            if i in (short_ch + long_ch + capital_ch):
+                code = code + 2**3
+            elif i in capital_ch:
+                code = code + 2**1    
         ch_code.append(code)
 
     for i in range(len(coordinates)):
         # Horizontal border
-        my_ch_label.write(',' + str(coordinates[i][0]* Rx + 32) + ',' + str(word[i]) + ',' + 'code_{}'.format(ch_code[0]))
+        my_ch_label.write(',' + str(coordinates[i][0]* Rx + 32) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
             
         #img_word = cv2.circle(img_word, (coordinates[i][0] + 32, coordinates[i][1]), radius=0, color=(0, 0, 255), thickness=2)
 
@@ -204,7 +221,7 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
         
         #cv2.imwrite('results/my_words/{}_{}'.format(k[:-2], j), img_word)
         #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word)
-        cv2.imwrite('results/resized/{}_{}'.format(k[:-2], word), resized_img_word)
+        cv2.imwrite('results/dots_word/{}_{}_{}.jpg'.format(k[:-6], j, word), resized_img_word)
 
     """for i in coordinates_old: # Very slow
         # Horizontal border
@@ -310,4 +327,4 @@ def perspective_transform_coordinates(coordinates, m_matrix):
     return new_coordinates[:2]
 
 if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/1.h5')
+    main('/home/sondors/SynthText_ubuntu/results/30.h5')
