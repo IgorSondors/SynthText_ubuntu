@@ -156,7 +156,6 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     width = w_of_word
     height = 32
     height_div = height/int(h_of_word)
-    height_div = 1
     width = int(width * height_div) * 2
 
     src_pts =  np.array([[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left]], dtype="float32")
