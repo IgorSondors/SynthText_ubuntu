@@ -33,7 +33,7 @@ def main(db_fname):
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
         cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-        cv2.imread('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), 1)
+        img_bordered = cv2.imread('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), 1)
         border_value = 64
         #   horizontal border
         img_bordered = cv2.hconcat((img_bordered, np.zeros((np.shape(img_bordered)[0], border_value, 3), dtype=np.uint8) ))
@@ -178,4 +178,4 @@ def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_
     return k, b, model
 
 if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/200.h5')
+    main('/home/sondors/SynthText_ubuntu/results/8k_ultimate.h5')
