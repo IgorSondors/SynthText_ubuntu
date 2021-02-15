@@ -14,7 +14,7 @@ def main(db_fname):
     print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
 
     my_ch_label = open('results/my_label/ocr_symbols/ds_images.csv', 'w')
-    
+    img_counter = -1 
     for k in dsets:
         rgb = db['data'][k][...]
         charBB = db['data'][k].attrs['charBB']
@@ -27,15 +27,13 @@ def main(db_fname):
         print("  ** text         : ", colorize(Color.GREEN, txt))
         # print("  ** text         : ", colorize(Color.GREEN, txt.encode('utf-8')))
         #print('charBB', charBB)
+        img_counter = img_counter + 1
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-        cv2.imwrite('results/my_label/ocr_symbols/real_frames/'+k[:-6]+'.jpg', img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-        img = img_gray
+        cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-        img_w, img_h = img.shape[1], img.shape[0]
-        name_jpg = k
-        chars_quantity = charBB.shape[-1]
+        img_w, img_h = img_gray.shape[1], img_gray.shape[0]
 
         pixel_step_x = 1
         All_x_under_word, All_y_under_word, All_w_char_list, All_h_char_list, All_char_list = [], [], [], [], []
@@ -111,7 +109,7 @@ def main(db_fname):
 
         print(len(All_x_under_word), len(All_y_under_word), len(All_w_char_list), len(All_h_char_list), len(All_char_list))
         
-        my_ch_label.write(k[:-6] + '.jpg' + ',' + str(img_h) + ',' + str(img_w) + ',' + str(number_of_dots))
+        my_ch_label.write('image_{}.jpg'.format(img_counter) + ',' + str(img_h) + ',' + str(img_w) + ',' + str(number_of_dots))
 
         for z in range(number_of_dots):
 
@@ -139,7 +137,7 @@ def dot_per_pix(tg_alpha, b, x_down_left_word, x_down_right_word, word, w_of_nex
             if next_x <= end_x + 1:
                 x_under_word.append(next_x)
                 next_y = tg_alpha * next_x + b
-                y_under_word.append(next_y)
+                y_under_word.append(round(next_y,1))
                 
                 for j in range(len(word)):
                     if  len(x_under_word) - 1 == len(char_list):

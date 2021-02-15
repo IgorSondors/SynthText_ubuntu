@@ -14,7 +14,7 @@ def main(db_fname):
     print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
 
     my_ch_label = open('results/my_label/ocr_strides/ds_images.csv', 'w')
-    
+    img_counter = -1 
     for k in dsets:
         rgb = db['data'][k][...]
         charBB = db['data'][k].attrs['charBB']
@@ -25,15 +25,12 @@ def main(db_fname):
         print("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print("  ** text         : ", colorize(Color.GREEN, txt))
+        img_counter = img_counter + 1
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-        cv2.imwrite('results/my_images/'+k[:-6]+'.jpg', img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-        #cv2.imwrite('results/my_images/'+k[:-2], img_gray)
-        #cv2.imwrite('results/my_images/'+k[:-6]+'.png', img_gray)
-        rgb = img_gray
+        cv2.imwrite('results/my_label/ocr_strides/images/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-        name_jpg = k
         chars_quantity = charBB.shape[-1]
 
         pixel_step_x = 1
@@ -65,7 +62,7 @@ def main(db_fname):
             h_of_next_ch_word = []
 
             x_top_left_word, x_top_right_word, y_top_left_word, y_top_right_word = [], [], [], []
-            my_ch_label.write(k[:-6]+'_{}.jpg'.format(j))
+            my_ch_label.write('image_{}_{}.jpg'.format(img_counter, j))
 
             while i < num_ch_per_w:
                 i = i + 1
@@ -104,7 +101,7 @@ def main(db_fname):
             
             tg_alpha, b, model = lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word)
             #try:            
-            x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
+            x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
                                                                 x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_top_left_word, y_top_right_word)
             #except:
@@ -112,7 +109,7 @@ def main(db_fname):
             my_ch_label.write('\n')
     db.close()
     
-def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
+def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
                     x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                     y_top_left_word, y_top_right_word):
 
@@ -129,8 +126,6 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     y_top_left, y_top_right = int(y_top_left_word[0]), int(y_top_right_word[-1])
     x_down_left, x_down_right = int(x_down_left_word[0]), int(x_down_right_word[-1])
     y_down_left, y_down_right = int(y_down_left_word[0]), int(y_down_right_word[-1])
-    
-    img = rgb
 
     h_of_word = min(h_of_next_ch_word)
     w_of_word = (((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5)
@@ -139,7 +134,6 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
                                                                                                         tg_alpha, word, h_of_word, 
                                                                                                         y_top_left, y_top_right, y_down_left, y_down_right, 
                                                                                                         x_top_left, x_top_right, x_down_left, x_down_right)
-
     h_of_word = h_of_word + delta_b1 + delta_b2
     
     print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
@@ -154,17 +148,17 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     #the perspective transformation matrix
     M = cv2.getPerspectiveTransform(src_pts, dst_pts)
     #directly warp the rotated rectangle to get the straightened rectangle
-    dst = cv2.warpPerspective(img, M, (width, height))
+    dst = cv2.warpPerspective(img_gray, M, (width, height))
 
-    cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}.jpg'.format(k[:-6], j), dst, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    cv2.imwrite('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), dst, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-    img_word = cv2.imread('results/my_label/ocr_strides/real_frames/{}_{}.jpg'.format(k[:-6], j), 1)
+    img_word = cv2.imread('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), 1)
 
     resized_img_word = img_word
     resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8) ))
     resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8), resized_img_word ))
 
-    cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}.jpg'.format(k[:-6], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    cv2.imwrite('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
@@ -215,14 +209,14 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
         
         #cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}'.format(k[:-2], j), img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-        cv2.imwrite('results/my_label/ocr_strides/dots_word/{}_{}_{}.jpg'.format(k[:-6], j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('results/my_label/ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     """for i in coordinates_old: # Very slow
         # Horizontal border
         
-        img = cv2.circle(img, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
+        img_gray = cv2.circle(img_gray, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
         
-        cv2.imwrite("results/my_label/ocr_strides/dots_images/{}_my.jpg".format(k[:-6]),img, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
+        cv2.imwrite("results/my_label/ocr_strides/dots_images/image_{}_{}_dots.jpg".format(img_counter, j),img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
     
     return x_down_right_word, y_down_left_word
 
