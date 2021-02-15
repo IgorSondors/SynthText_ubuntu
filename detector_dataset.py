@@ -1,25 +1,19 @@
-from __future__ import division
-import os
-import os.path as osp
 import numpy as np
-
+import math
 import h5py 
-from common import *
-import itertools
-from PIL import Image, ImageDraw, ImageOps
-import cv2
 import re
-import matplotlib.pyplot as plt 
-import matplotlib.image as mpimg
-
+import cv2
+import random
 from sklearn.linear_model import LinearRegression
+
+from common import *
 
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
     dsets = sorted(db['data'].keys())
     print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
 
-    my_ch_label = open('results/my_label/ds_images.csv', 'a')
+    my_ch_label = open('results/my_label/ocr_symbols/ds_images.csv', 'w')
     
     for k in dsets:
         rgb = db['data'][k][...]
@@ -36,7 +30,7 @@ def main(db_fname):
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-        cv2.imwrite('results/my_images/'+k[:-6]+'.jpg', img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('results/my_label/ocr_symbols/real_frames/'+k[:-6]+'.jpg', img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         img = img_gray
 
         img_w, img_h = img.shape[1], img.shape[0]
@@ -160,20 +154,7 @@ def dot_per_pix(tg_alpha, b, x_down_left_word, x_down_right_word, word, w_of_nex
                         elif next_x >= x_down_left_word[j] and next_x >= x_down_right_word[j] and next_x <= x_down_left_word[j+1]: # between two bboxes
                             char_list.append(word[j+1])
                             w_char_list.append(w_of_next_ch_word[j+1])
-                            h_char_list.append(h_of_next_ch_word[j+1])
-                        
-
-    """elif pixel_step_number < 0: # mirrored words
-        for i in range((pixel_step_number)*(-1)):      
-            next_x = start_x - i
-            x_under_word.append(next_x)
-            next_y = tg_alpha * next_x + b
-            y_under_word.append(next_y)
-            for j in range(len(word)):
-                if next_x <= x_down_left_word[j] and next_x >= x_down_right_word[j]:
-                    char_list.append(word[j])
-                    w_char_list.append(w_of_next_ch_word[j])
-                    h_char_list.append(h_of_next_ch_word[j])"""
+                            h_char_list.append(h_of_next_ch_word[j+1])                    
 
     return x_under_word, y_under_word, w_char_list, h_char_list, char_list
 

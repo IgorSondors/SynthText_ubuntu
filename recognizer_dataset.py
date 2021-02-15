@@ -1,9 +1,6 @@
-import os
 import numpy as np
 import math
 import h5py 
-import itertools
-from PIL import Image, ImageOps
 import re
 import cv2
 import random
@@ -16,7 +13,7 @@ def main(db_fname):
     dsets = sorted(db['data'].keys())
     print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
 
-    my_ch_label = open('results/ds_images.csv', 'a')
+    my_ch_label = open('results/my_label/ocr_strides/ds_images.csv', 'w')
     
     for k in dsets:
         rgb = db['data'][k][...]
@@ -28,10 +25,6 @@ def main(db_fname):
         print("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print("  ** text         : ", colorize(Color.GREEN, txt))
-
-        """pil_image = Image.fromarray(rgb, 'RGB')
-        gray_image = ImageOps.grayscale(pil_image)
-        gray_image.save('results/my_images/'+k[:-2])"""
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
@@ -76,7 +69,6 @@ def main(db_fname):
 
             while i < num_ch_per_w:
                 i = i + 1
-
                 #print('Буква = ', all_symbols[ochered])
 
                 x_down_left = charBB[0][3][ochered]
@@ -149,7 +141,6 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
                                                                                                         x_top_left, x_top_right, x_down_left, x_down_right)
 
     h_of_word = h_of_word + delta_b1 + delta_b2
-
     
     print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
     
@@ -165,15 +156,15 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
     #directly warp the rotated rectangle to get the straightened rectangle
     dst = cv2.warpPerspective(img, M, (width, height))
 
-    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), dst, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}.jpg'.format(k[:-6], j), dst, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-    img_word = cv2.imread('results/my_words/{}_{}.jpg'.format(k[:-6], j), 1)
+    img_word = cv2.imread('results/my_label/ocr_strides/real_frames/{}_{}.jpg'.format(k[:-6], j), 1)
 
     resized_img_word = img_word
     resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8) ))
     resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8), resized_img_word ))
 
-    cv2.imwrite('results/my_words/{}_{}.jpg'.format(k[:-6], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}.jpg'.format(k[:-6], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
@@ -222,16 +213,16 @@ def dot_word_crop(tg_alpha, b, k, rgb, word, w_of_next_ch_word, h_of_next_ch_wor
 
         resized_img_word = cv2.circle(resized_img_word, (int(coordinates[i][0] + 32), 16), radius=0, color=(0, 0, 255), thickness=2)
         
-        #cv2.imwrite('results/my_words/{}_{}'.format(k[:-2], j), img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        #cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}'.format(k[:-2], j), img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-        cv2.imwrite('results/dots_word/{}_{}_{}.jpg'.format(k[:-6], j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('results/my_label/ocr_strides/dots_word/{}_{}_{}.jpg'.format(k[:-6], j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     """for i in coordinates_old: # Very slow
         # Horizontal border
         
         img = cv2.circle(img, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
         
-        cv2.imwrite("results/dots/{}_my.png".format(k[:-2]),img, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
+        cv2.imwrite("results/my_label/ocr_strides/dots_images/{}_my.jpg".format(k[:-6]),img, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
     
     return x_down_right_word, y_down_left_word
 
@@ -316,12 +307,6 @@ def perspective_transform_coordinates(coordinates, m_matrix):
     Change History:
     2020-07-30 12:00 function created.
     """
-    """center = (0, 0)
-    newrow = [0, 0, 1]
-    r_matrix = cv2.getRotationMatrix2D(center, 0.0, 1.0)
-    r_matrix = np.vstack([r_matrix, newrow])
-    m_matrix = np.dot(M, r_matrix)"""
-
     # Perform the actual coordinates processing
     coordinates.append(1)
     new_coordinates = np.dot(m_matrix, coordinates)
