@@ -33,7 +33,19 @@ def main(db_fname):
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
         cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-        img_w, img_h = img_gray.shape[1], img_gray.shape[0]
+        cv2.imread('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), 1)
+        border_value = 64
+        #   horizontal border
+        img_bordered = cv2.hconcat((img_bordered, np.zeros((np.shape(img_bordered)[0], border_value, 3), dtype=np.uint8) ))
+        img_bordered = cv2.hconcat((np.zeros((np.shape(img_bordered)[0], border_value, 3), dtype=np.uint8), img_bordered ))
+
+        #   vertical border
+        img_bordered = cv2.vconcat((img_bordered, np.zeros((border_value, np.shape(img_bordered)[1], 3), dtype=np.uint8) ))
+        img_bordered = cv2.vconcat((np.zeros((border_value, np.shape(img_bordered)[1], 3), dtype=np.uint8), img_bordered ))
+
+        cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_bordered, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+
+        img_w, img_h = img_bordered.shape[1], img_bordered.shape[0]
 
         pixel_step_x = 1
         All_x_under_word, All_y_under_word, All_w_char_list, All_h_char_list, All_char_list = [], [], [], [], []
@@ -68,14 +80,14 @@ def main(db_fname):
                 #print('i = ', i)
                 #ochered = ochered + 1
                 print('Буква = ', all_symbols[ochered])
-                x_down_left = charBB[0][3][ochered]
-                y_down_left = charBB[1][3][ochered]
-                x_top_left = charBB[0][0][ochered]
-                y_top_left = charBB[1][0][ochered]
-                x_top_right = charBB[0][1][ochered]
-                y_top_right = charBB[1][1][ochered]
-                x_down_right = charBB[0][2][ochered]
-                y_down_right = charBB[1][2][ochered]               
+                x_down_left = charBB[0][3][ochered] + border_value
+                y_down_left = charBB[1][3][ochered] + border_value
+                x_top_left = charBB[0][0][ochered] + border_value
+                y_top_left = charBB[1][0][ochered] + border_value
+                x_top_right = charBB[0][1][ochered] + border_value
+                y_top_right = charBB[1][1][ochered] + border_value
+                x_down_right = charBB[0][2][ochered] + border_value
+                y_down_right = charBB[1][2][ochered] + border_value               
 
                 value_of_symbol = all_symbols[ochered]
                 word = word + value_of_symbol
@@ -95,8 +107,7 @@ def main(db_fname):
                     ochered = ochered + 1
             
             tg_alpha, b, model = lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word)
-            
-            
+                       
             x_under_word, y_under_word, w_char_list, h_char_list, char_list = dot_per_pix(tg_alpha, b, x_down_left_word, x_down_right_word, word, w_of_next_ch_word, h_of_next_ch_word, pixel_step_x)
             
             All_x_under_word = All_x_under_word + x_under_word
@@ -112,9 +123,8 @@ def main(db_fname):
         my_ch_label.write('image_{}.jpg'.format(img_counter) + ',' + str(img_h) + ',' + str(img_w) + ',' + str(number_of_dots))
 
         for z in range(number_of_dots):
-
-                my_ch_label.write(',' + str(All_x_under_word[z]) + ',' + str(All_y_under_word[z]) + ',' + (str(All_w_char_list[z])) + ',' + str(All_h_char_list[z]) + ',' + str(All_char_list[z]))
-            
+            my_ch_label.write(',' + str(All_x_under_word[z]) + ',' + str(All_y_under_word[z]) + ',' + (str(All_w_char_list[z])) + ',' + str(All_h_char_list[z]) + ',' + str(All_char_list[z]))            
+        
         my_ch_label.write('\n')
 
     db.close()
