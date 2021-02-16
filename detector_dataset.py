@@ -34,18 +34,47 @@ def main(db_fname):
         cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
         img_bordered = cv2.imread('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), 1)
-        border_value = 64
+        #border_value = 64
+        img_w, img_h = img_bordered.shape[1], img_bordered.shape[0]
+        
+        border_horizontal = (768 - img_w) / 2
+        border_vertical = (768 - img_h) / 2
+
+        if border_horizontal < 0 or border_vertical < 0:
+            print('Mistake!!!')
+            cv2.imwrite('results/my_label/ocr_symbols/image_{}_border.jpg'.format(img_counter), img_bordered, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+
         #   horizontal border
-        img_bordered = cv2.hconcat((img_bordered, np.zeros((np.shape(img_bordered)[0], border_value, 3), dtype=np.uint8) ))
-        img_bordered = cv2.hconcat((np.zeros((np.shape(img_bordered)[0], border_value, 3), dtype=np.uint8), img_bordered ))
+        if border_horizontal%1 == 0.5:
+            print('border_horizontal = ', border_horizontal)
+            border_horizontal = border_horizontal - 0.5
+            border_horizontal = int(border_horizontal)
+            img_bordered = cv2.hconcat((img_bordered, np.zeros((np.shape(img_bordered)[0], border_horizontal + 1, 3), dtype=np.uint8) ))
+            img_bordered = cv2.hconcat((np.zeros((np.shape(img_bordered)[0], border_horizontal, 3), dtype=np.uint8), img_bordered ))
+        else:
+            border_horizontal = int(border_horizontal)
+            img_bordered = cv2.hconcat((img_bordered, np.zeros((np.shape(img_bordered)[0], border_horizontal, 3), dtype=np.uint8) ))
+            img_bordered = cv2.hconcat((np.zeros((np.shape(img_bordered)[0], border_horizontal, 3), dtype=np.uint8), img_bordered ))
 
         #   vertical border
-        img_bordered = cv2.vconcat((img_bordered, np.zeros((border_value, np.shape(img_bordered)[1], 3), dtype=np.uint8) ))
-        img_bordered = cv2.vconcat((np.zeros((border_value, np.shape(img_bordered)[1], 3), dtype=np.uint8), img_bordered ))
+        if border_vertical%1 == 0.5:
+            print('border_vertical = ', border_vertical)
+            border_vertical = border_vertical - 0.5
+            border_vertical = int(border_vertical)
+            img_bordered = cv2.vconcat((img_bordered, np.zeros((border_vertical + 1, np.shape(img_bordered)[1], 3), dtype=np.uint8) ))
+            img_bordered = cv2.vconcat((np.zeros((border_vertical, np.shape(img_bordered)[1], 3), dtype=np.uint8), img_bordered ))
+        else:
+            border_vertical = int(border_vertical)
+            img_bordered = cv2.vconcat((img_bordered, np.zeros((border_vertical, np.shape(img_bordered)[1], 3), dtype=np.uint8) ))
+            img_bordered = cv2.vconcat((np.zeros((border_vertical, np.shape(img_bordered)[1], 3), dtype=np.uint8), img_bordered ))
 
-        cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_bordered, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        if img_bordered.shape[1] != 768 or img_bordered.shape[0] != 768:
+            print('Mistake!!!')
+            cv2.imwrite('results/my_label/ocr_symbols/image_{}_shape.jpg'.format(img_counter), img_bordered, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
+        img_bordered = cv2.cvtColor(img_bordered, cv2.COLOR_RGB2GRAY)
         img_w, img_h = img_bordered.shape[1], img_bordered.shape[0]
+        cv2.imwrite('results/my_label/ocr_symbols/real_frames/image_{}.jpg'.format(img_counter), img_bordered, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
         pixel_step_x = 1
         All_x_under_word, All_y_under_word, All_w_char_list, All_h_char_list, All_char_list = [], [], [], [], []
@@ -80,14 +109,14 @@ def main(db_fname):
                 #print('i = ', i)
                 #ochered = ochered + 1
                 print('Буква = ', all_symbols[ochered])
-                x_down_left = charBB[0][3][ochered] + border_value
-                y_down_left = charBB[1][3][ochered] + border_value
-                x_top_left = charBB[0][0][ochered] + border_value
-                y_top_left = charBB[1][0][ochered] + border_value
-                x_top_right = charBB[0][1][ochered] + border_value
-                y_top_right = charBB[1][1][ochered] + border_value
-                x_down_right = charBB[0][2][ochered] + border_value
-                y_down_right = charBB[1][2][ochered] + border_value               
+                x_down_left = charBB[0][3][ochered] + border_horizontal
+                y_down_left = charBB[1][3][ochered] + border_vertical
+                x_top_left = charBB[0][0][ochered] + border_horizontal
+                y_top_left = charBB[1][0][ochered] + border_vertical
+                x_top_right = charBB[0][1][ochered] + border_horizontal
+                y_top_right = charBB[1][1][ochered] + border_vertical
+                x_down_right = charBB[0][2][ochered] + border_horizontal
+                y_down_right = charBB[1][2][ochered] + border_vertical               
 
                 value_of_symbol = all_symbols[ochered]
                 word = word + value_of_symbol
@@ -178,4 +207,4 @@ def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_
     return k, b, model
 
 if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/8k_ultimate.h5')
+    main('/home/sondors/SynthText_ubuntu/results/200.h5')
