@@ -2,9 +2,8 @@ import numpy as np
 import h5py
 import os, sys, traceback
 import os.path as osp
-# from visualize_depth import *
-# import titan_utils as titu
 
+import time
 import matplotlib
 matplotlib.use('Agg')
 
@@ -12,33 +11,11 @@ from common import *
 from synthgen import *
 from PIL import Image
 
-folder1 = '/home/sondors/SynthText_ubuntu/results/1'
-folder2 = '/home/sondors/SynthText_ubuntu/results/2'
-folder_all_text_arr = '/home/sondors/SynthText_ubuntu/results/all_text_arr'
+start_time = time.time()
 
-f1 = next(os.walk(folder1))
-names1 = f1[2]
-for i in names1:
-    #print(i)
-    os.remove(os.path.join('/home/sondors/SynthText_ubuntu/results/1', i))
-
-
-f2 = next(os.walk(folder2))
-names2 = f2[2]
-for i in names2:
-    #print(i)
-    os.remove(os.path.join('/home/sondors/SynthText_ubuntu/results/2', i))
-
-
-f3 = next(os.walk(folder_all_text_arr))
-names3 = f3[2]
-for i in names3:
-    #print(i)
-    os.remove(os.path.join('/home/sondors/SynthText_ubuntu/results/folder_all_text_arr', i))
-
-
-START_IMG_IDX = 8000
-NUM_IMG = 1#-1
+START_IMG_IDX = 106
+#8003#0#8000
+NUM_IMG = 100#500#4000#-1
 
 INSTANCE_PER_IMAGE = 1
 SECS_PER_IMG = 5 #max time per image in seconds
@@ -67,7 +44,7 @@ def main(viz=False):
     depth_db = h5py.File(config['depth_db'],'r')
     seg_db = h5py.File(config['seg_db'],'r')
 
-    out_db = h5py.File(outdir + '/dset_alphabet.h5', 'w')
+    out_db = h5py.File(outdir + '/11.h5', 'w')
     out_db.create_group('/data')
 
     imnames = sorted(depth_db.keys())
@@ -79,8 +56,8 @@ def main(viz=False):
     if NUM_IMG < 0:
         NUM_IMG = N
     end_idx = min(START_IMG_IDX+NUM_IMG, N)
-    print(NUM_IMG)
-    print(start_idx, end_idx, N)
+    #print(NUM_IMG)
+    #print(start_idx, end_idx, N)
 
     RV3 = RendererV3(config['data_dir'], max_time=SECS_PER_IMG)
 
@@ -88,7 +65,7 @@ def main(viz=False):
         imname = imnames[i]
         try:
             # get the image:
-            print(imdir+'/'+imname)
+            #print(imdir+'/'+imname)
             img = Image.open(imdir+'/'+imname)
             if img is None:
                 continue
@@ -108,10 +85,10 @@ def main(viz=False):
             seg = np.array(Image.fromarray(seg).resize(sz,Image.NEAREST))
             
 
-            print(colorize(Color.RED,'%d of %d'%(i,end_idx-1), bold=True))
+            #print(colorize(Color.RED,'%d of %d'%(i,end_idx-1), bold=True))
             res = RV3.render_text(img,depth,seg,area,label,
                                   ninstance=INSTANCE_PER_IMAGE,viz=viz)
-            #print('res ', res)
+            ##print('res ', res)
             if len(res) > 0:
                 # non-empty : successful in placing text:
                 add_res_to_db(imname, res, out_db)
@@ -121,7 +98,7 @@ def main(viz=False):
                     # break
         except:
             traceback.print_exc()
-            print(colorize(Color.GREEN,'>>>> CONTINUING....', bold=True))
+            #print(colorize(Color.GREEN,'>>>> CONTINUING....', bold=True))
             continue
 
     depth_db.close()
@@ -130,3 +107,6 @@ def main(viz=False):
 
 if __name__=='__main__':
     main(True)
+
+Generation_time = time.time() - start_time
+print('Generation_time = ',  Generation_time)
