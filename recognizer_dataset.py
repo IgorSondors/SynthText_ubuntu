@@ -158,6 +158,7 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
     resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8) ))
     resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8), resized_img_word ))
 
+    resized_img_word = cv2.cvtColor(resized_img_word, cv2.COLOR_RGB2GRAY)
     cv2.imwrite('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
@@ -211,12 +212,12 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
         #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         cv2.imwrite('results/my_label/ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-    """for i in coordinates_old: # Very slow
+    for i in coordinates_old: # Very slow
         # Horizontal border
         
-        img_gray = cv2.circle(img_gray, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
+        img_gray = cv2.circle(img_gray, (i[0], i[1]), radius=0, color=(255, 0, 0), thickness=2)
         
-        cv2.imwrite("results/my_label/ocr_strides/dots_images/image_{}_{}_dots.jpg".format(img_counter, j),img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
+        cv2.imwrite("results/my_label/ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
     
     return x_down_right_word, y_down_left_word
 
@@ -309,4 +310,4 @@ def perspective_transform_coordinates(coordinates, m_matrix):
     return new_coordinates[:2]
     
 if __name__=='__main__':   
-    main('/home/sondors/SynthText_ubuntu/results/200.h5')
+    main('/home/sondors/SynthText_ubuntu/results/2.h5')
