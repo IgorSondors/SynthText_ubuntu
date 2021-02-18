@@ -93,7 +93,7 @@ class RenderFont(object):
         # the minimum number of characters that should fit in a mask
         # to define the maximum font height.
         self.min_nchar = 2
-        self.min_font_h = 16 #px : 0.6*12 ~ 7px <= actual minimum height
+        self.min_font_h = 22#230#22 #px : 0.6*12 ~ 7px <= actual minimum height
         self.max_font_h = 120 #px
         self.p_flat = 0.10
 
@@ -121,9 +121,9 @@ class RenderFont(object):
         # get the number of lines
         lines = text.split('\n')
         lengths = [len(l) for l in lines]
-        print('pygame.version.ver = ', pygame.version.ver)
+        #print('pygame.version.ver = ', pygame.version.ver)
         # font parameters:
-        line_spacing = font.get_sized_height() + 3
+        line_spacing = font.get_sized_height() + 5
         
         # initialize the surface to proper size:
         line_bounds = font.get_rect(lines[np.argmax(lengths)])
@@ -544,7 +544,7 @@ class RenderFont(object):
         max_font_h = min(max_font_h, self.max_font_h)
         if max_font_h < self.min_font_h: # not possible to place any text here
             return #None
-        print('mask = ', mask)
+        
         # let's just place one text-instance for now
         ## TODO : change this to allow multiple text instances?
         i = 0

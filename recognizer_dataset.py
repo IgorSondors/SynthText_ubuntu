@@ -5,8 +5,11 @@ import re
 import cv2
 import random
 from sklearn.linear_model import LinearRegression
+import time
 
 from common import *
+
+start_time = time.time()
 
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
@@ -66,7 +69,7 @@ def main(db_fname):
 
             while i < num_ch_per_w:
                 i = i + 1
-                #print('Буква = ', all_symbols[ochered])
+                print('Буква = ', all_symbols[ochered])
 
                 x_down_left = charBB[0][3][ochered]
                 y_down_left = charBB[1][3][ochered]
@@ -136,7 +139,7 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
                                                                                                         x_top_left, x_top_right, x_down_left, x_down_right)
     h_of_word = h_of_word + delta_b1 + delta_b2
     
-    print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
+    #print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
     
     width = w_of_word
     height = 32
@@ -165,8 +168,8 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
                                                                 w_of_next_ch_word, h_of_next_ch_word, M)
 
-    print('after transformations:', '\n', 'width = ', str(img_word.shape[1]), 'height = ', str(img_word.shape[0]))
-    print('after np zeros:', '\n', 'width = ', str(resized_img_word.shape[1]), 'height = ', str(resized_img_word.shape[0]))
+    #print('after transformations:', '\n', 'width = ', str(img_word.shape[1]), 'height = ', str(img_word.shape[0]))
+    #print('after np zeros:', '\n', 'width = ', str(resized_img_word.shape[1]), 'height = ', str(resized_img_word.shape[0]))
     my_ch_label.write(',' + str(resized_img_word.shape[0]) + ',' + str(resized_img_word.shape[1]))
 
     ch_code = []
@@ -212,12 +215,12 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
         #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         cv2.imwrite('results/my_label/ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
-    for i in coordinates_old: # Very slow
+    """for i in coordinates_old: # Very slow
         # Horizontal border
         
         img_gray = cv2.circle(img_gray, (i[0], i[1]), radius=0, color=(255, 0, 0), thickness=2)
         
-        cv2.imwrite("results/my_label/ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite("results/my_label/ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
     
     return x_down_right_word, y_down_left_word
 
@@ -310,4 +313,6 @@ def perspective_transform_coordinates(coordinates, m_matrix):
     return new_coordinates[:2]
     
 if __name__=='__main__':   
-    main('/home/sondors/SynthText_ubuntu/results/2.h5')
+    main('/home/sondors/SynthText_ubuntu/results/10.h5')
+
+print('end time = ', time.time() - start_time)

@@ -5,8 +5,11 @@ import re
 import cv2
 import random
 from sklearn.linear_model import LinearRegression
+import time
 
 from common import *
+
+start_time = time.time()
 
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
@@ -84,16 +87,18 @@ def main(db_fname):
         ochered = -1
         
         for j in range(len(txt)):
-            all_symbols = all_symbols + txt[j]
-            all_symbols = re.sub('[(\n) ]', '', all_symbols)
-            txt_for_split = re.sub('(\n)', ' ', txt[j])
+            all_symbols = all_symbols + str(txt[j])
+            all_symbols = re.sub('[\n ]', '', all_symbols)
+            txt_for_split = re.sub('\n', ' ', txt[j])
             splitted = txt_for_split.split()
             new_txt = new_txt + splitted
         print('new_txt = ', new_txt)
         #print('charBB = ', charBB)
         for j in range(len(new_txt)): #кол-во слов
             ochered = ochered + 1
-            print('номер = ', j,  ' Слово = ', new_txt[j], ', кол-во букв = ', len(str(new_txt[j])),)
+            print('номер = ', j,  ' Слово = ', new_txt[j], ', кол-во букв = ', len(str(new_txt[j])))
+            print('image_{}.jpg'.format(img_counter))
+            print('all_symbols = ', all_symbols)
             #for i in range(len(new_txt[j])):
             i = 0
             num_ch_per_w = len(str(new_txt[j])) #кол-во букв для данного слова
@@ -108,7 +113,7 @@ def main(db_fname):
                 i = i + 1
                 #print('i = ', i)
                 #ochered = ochered + 1
-                print('Буква = ', all_symbols[ochered])
+                print('Номер буквы', ochered, 'Буква = ', all_symbols[ochered])
                 x_down_left = charBB[0][3][ochered] + border_horizontal
                 y_down_left = charBB[1][3][ochered] + border_vertical
                 x_top_left = charBB[0][0][ochered] + border_horizontal
@@ -118,7 +123,7 @@ def main(db_fname):
                 x_down_right = charBB[0][2][ochered] + border_horizontal
                 y_down_right = charBB[1][2][ochered] + border_vertical               
 
-                value_of_symbol = all_symbols[ochered]
+                value_of_symbol = str(all_symbols[ochered])
                 word = word + value_of_symbol
 
                 w_of_next_ch = ((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5
@@ -200,11 +205,13 @@ def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_
     y = np.array(y_down_left_word + y_down_right_word)
 
     model = LinearRegression().fit(x, y)
-    print('intercept:', model.intercept_)
-    print('slope:', model.coef_)
+    #print('intercept:', model.intercept_)
+    #print('slope:', model.coef_)
     k = model.coef_[0]
     b = model.intercept_
     return k, b, model
 
 if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/200.h5')
+    main('/home/sondors/SynthText_ubuntu/results/300_160.h5')
+
+print('end time = ', time.time() - start_time)

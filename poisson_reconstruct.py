@@ -2,7 +2,6 @@
 Script for fast image reconstruction from gradients.
 Based on Ramesh Raskar's Matlab script, available here:
 http://web.media.mit.edu/~raskar/photo/code.pdf
-
 Adapted slightly for doing "mixed" Poisson Image Editing [Perez et al.]
 Paper: http://www.cs.jhu.edu/~misha/Fall07/Papers/Perez03.pdf
 """
@@ -238,5 +237,3 @@ if __name__=='__main__':
     plt.subplot(1,3,3)    
     plt.imshow(im_res[:,:,::-1]) #cv2 reads in BGR
     plt.show()
-
-

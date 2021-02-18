@@ -13,11 +13,11 @@ from PIL import Image
 
 start_time = time.time()
 
-START_IMG_IDX = 106
+START_IMG_IDX = 0
 #8003#0#8000
-NUM_IMG = 100#500#4000#-1
+NUM_IMG = -1#500#4000#-1
 
-INSTANCE_PER_IMAGE = 1
+INSTANCE_PER_IMAGE = 6
 SECS_PER_IMG = 5 #max time per image in seconds
 
 CONFIG_LOCAL = {'im_dir'   : '/home/sondors/data8k/bg_img',
@@ -44,7 +44,7 @@ def main(viz=False):
     depth_db = h5py.File(config['depth_db'],'r')
     seg_db = h5py.File(config['seg_db'],'r')
 
-    out_db = h5py.File(outdir + '/11.h5', 'w')
+    out_db = h5py.File(outdir + '/40k_13-120.h5', 'w')
     out_db.create_group('/data')
 
     imnames = sorted(depth_db.keys())
@@ -84,23 +84,17 @@ def main(viz=False):
             img = np.array(img.resize(sz,Image.ANTIALIAS))
             seg = np.array(Image.fromarray(seg).resize(sz,Image.NEAREST))
             
-
             #print(colorize(Color.RED,'%d of %d'%(i,end_idx-1), bold=True))
             res = RV3.render_text(img,depth,seg,area,label,
                                   ninstance=INSTANCE_PER_IMAGE,viz=viz)
-            ##print('res ', res)
+            
             if len(res) > 0:
                 # non-empty : successful in placing text:
                 add_res_to_db(imname, res, out_db)
-
-            # if viz:
-                # if 'q' in raw_input(colorize(Color.RED,'continue?',True)):
-                    # break
         except:
             traceback.print_exc()
             #print(colorize(Color.GREEN,'>>>> CONTINUING....', bold=True))
             continue
-
     depth_db.close()
     seg_db.close()
     out_db.close()

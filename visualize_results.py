@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import h5py 
 from common import *
+import cv2
 
 
 
@@ -41,19 +42,22 @@ def viz_textbb(text_im, charBB_list, wordBB, alpha=1.0):
             bb = bbs[:,:,j]
             bb = np.c_[bb,bb[:,0]]
             plt.plot(bb[0,:], bb[1,:], 'r', alpha=alpha/2)
-
+            """vcol = ['r','g','b','k']
+            for j in range(4):
+                plt.scatter(bb[0,j],bb[1,j],color=vcol[j])"""
+    
     # plot the word-BB:
     #print('wordBB', wordBB)
     #print('wordBB len', len(wordBB))
     #print('wordBB.shape[-1]', wordBB.shape)
-    """for i in range(wordBB.shape[-1]):
+    '''for i in range(wordBB.shape[-1]):
         bb = wordBB[:,:,i]
         bb = np.c_[bb,bb[:,0]]
         plt.plot(bb[0,:], bb[1,:], 'g', alpha=alpha)
         # visualize the indiv vertices:
-        vcol = ['r','g','b','k']
+        """vcol = ['r','g','b','k']
         for j in range(4):
-            plt.scatter(bb[0,j],bb[1,j],color=vcol[j])"""
+            plt.scatter(bb[0,j],bb[1,j],color=vcol[j])"""'''
 
     plt.gca().set_xlim([0,W-1])
     plt.gca().set_ylim([H-1,0])
@@ -63,6 +67,7 @@ def main(db_fname):
     db = h5py.File(db_fname, 'r')
     dsets = sorted(db['data'].keys())
     print ("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
+    counter = -1
     for k in dsets:
         rgb = db['data'][k][...]
         charBB = db['data'][k].attrs['charBB']
@@ -82,15 +87,18 @@ def main(db_fname):
         print('charBB.shape[-1]', charBB.shape)
         print('charBB[0]', charBB[0])
         print('charBB[1]', charBB[1])"""
-        
+        counter = counter + 1
         
         txt_utf = []
         for i in txt:
             txt_utf.append(i)#.decode("utf-8"))
 
         viz_textbb(rgb, [charBB], wordBB)
+        #cv2.imwrite('results/{}.png'.format(k), rgb)
+        #plt.savefig('results/{}.png'.format(k), dpi= 'figure')
         
-        #print ("image name        : ", colorize(Color.RED, k, bold=True))
+        print (
+         "image name        : ", colorize(Color.RED, k, bold=True), 'Image_{}'.format(counter))
         #print ("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         #print ("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print ("  ** text         : ", colorize(Color.GREEN, txt_utf))
@@ -101,6 +109,7 @@ def main(db_fname):
     db.close()
 
 if __name__=='__main__':
-    #main('results/dset_kr.h5')
-    main('results/dset_alphabet.h5')
+    main('/home/sondors/SynthText_ubuntu/results/40k_13-120.h5')
+    #main('results/dset_alphabet.h5')
     #main('results/SynthText.h5')
+    

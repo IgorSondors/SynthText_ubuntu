@@ -400,14 +400,14 @@ class RendererV3(object):
                 #Hs.append(H)
                 #Hinvs.append(Hinv)
                 #filt[idx] = True
-                print('xyz = ', xyz)
+                """print('xyz = ', xyz)
                 print('res = ', res)
                 print('mask = ', mask)
                 print('H = ', H)
                 print('!!! Hinv = ', Hinv)
-                print('type(Hinv) = ', type(Hinv))
+                print('type(Hinv) = ', type(Hinv))"""
                 if nice_homography(Hinv):
-                    print('Nice homography!!!','\n', Hinv)
+                    #print('Nice homography!!!','\n', Hinv)
                     masks.append(mask)
                     Hs.append(H)
                     Hinvs.append(Hinv)
@@ -418,8 +418,8 @@ class RendererV3(object):
         regions['place_mask'] = masks
         regions['homography'] = Hs
         regions['homography_inv'] = Hinvs
-        print(len(masks),len(Hs),len(Hinvs))
-        print('Hinvs = ', Hinvs)
+        #print(len(masks),len(Hs),len(Hinvs))
+        #print('Hinvs = ', Hinvs)
 
 
         return regions
@@ -533,7 +533,7 @@ class RendererV3(object):
         #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask_orig-1-{}.jpg'.format(counter_of_instances), text_mask_orig)
         bb_orig = bb.copy()
         text_mask = self.warpHomography(text_mask,H,rgb.shape[:2][::-1])
-        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-2-{}.jpg'.format(counter_of_instances), text_mask)
+        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/text_mask-afterWarp-{}.jpg'.format(counter_of_instances), text_mask)
 
         """print ('text_mask before is ', len(text_mask), text_mask)
         print (type(text_mask))"""
@@ -750,7 +750,8 @@ class RendererV3(object):
                     viz_masks(2,img,seg,depth,regions['label'])
                     # viz_regions(rgb.copy(),xyz,seg,regions['coeff'],regions['label'])
                     if i < ninstance-1:
-                        raw_input(colorize(Color.BLUE,'continue?',True))                    
+                        print('raw_input')
+                        #raw_input(colorize(Color.BLUE,'continue?',True))                    
         return res
 
 def nice_homography(H):
