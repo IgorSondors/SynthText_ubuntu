@@ -261,11 +261,11 @@ with open('input.txt', encoding = 'utf8') as fp:
                     is_good_rect, bottom_x, bottom_y, top_x, top_y = find_bbox_coord(point_x, point_y)
 
                     # kx_plus_b, возвращающая точки под полигоном с шагом 1 пикс по оХ
-                    poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y)   
-                    cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])   
+                    poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y)    
                 else:
                     black = draw_black_rect(img_gray, point_pairs)
-                    cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), black, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+
+                    img_gray = black
                     poligon_dots = 0
                     x_plus_delta, y_plus_delta = [], []
                                 
@@ -273,6 +273,7 @@ with open('input.txt', encoding = 'utf8') as fp:
                 All_x_under_word = All_x_under_word + x_plus_delta
                 All_y_under_word = All_y_under_word + y_plus_delta
 
+            cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
             data_annotation.write('image_{}.jpg'.format(img_counter) + ',' + str(height) + ',' + str(width))
             
             data_annotation.write(',' + str(All_image_dots))
