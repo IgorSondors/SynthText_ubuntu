@@ -237,9 +237,9 @@ with open('input.txt', encoding = 'utf8') as fp:
             # second - один словарик для одного из изображений из множества {"file":"name.jpg","result":[...]}, 
             # включающий в себя [...] = [{"type":"polygon","data":[{"x":0.4,"y":0.4}, {}...], "readable":t/f}, ...]
             for s in second: # s - один из множества полигонов одной картинки
-                color = 'red'
+                is_good_rect = False
                 if s['readable']:
-                    color = 'green'
+                    is_good_rect = True
                 data = s['data']
                 
                 point_pairs = []
@@ -256,15 +256,12 @@ with open('input.txt', encoding = 'utf8') as fp:
                     point_pairs.append(int(x))
                     point_pairs.append(int(y))
 
-                if color == 'green':  
-                    # функция определяющая где верх и низ полигона, возвращающая крайние точки
-                    is_good_rect, bottom_x, bottom_y, top_x, top_y = find_bbox_coord(point_x, point_y)
-                if color == 'red':
-                    is_good_rect = False
-                    
                 if is_good_rect:
+                    # функция определяющая где верх и низ полигона и возвращающая их точки
+                    is_good_rect, bottom_x, bottom_y, top_x, top_y = find_bbox_coord(point_x, point_y)
+
                     # kx_plus_b, возвращающая точки под полигоном с шагом 1 пикс по оХ
-                    poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b( bottom_x, bottom_y)   
+                    poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y)   
                     cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])   
                 else:
                     black = draw_black_rect(img_gray, point_pairs)
