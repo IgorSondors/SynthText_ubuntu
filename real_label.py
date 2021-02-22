@@ -142,10 +142,10 @@ def find_bbox_coord(point_x, point_y):
 
         if is_square: 
             k = (point_y[0] - point_y[3])/(point_x[0] - point_x[3])
-            print('For square k = ', k)
+            print('Квадрат')
             if k < 1.5 or k > -1.5:
                 is_good_rect = False # too much tilt
-
+                print('Квадрат сильно наклонен')
             top_x, top_y = point_x[:2], point_y[:2]
             bottom_x, bottom_y = point_x[2:], point_y[2:]
         else:
@@ -179,7 +179,7 @@ def find_bbox_coord(point_x, point_y):
         
         # Переделать нахождение дна и верхушки полигона при большом кол-ве ошибок
         if point_x.index(top_edge_x[0]) == 0:
-            print('Первая точка в левом верхнем')
+            #print('Первая точка в левом верхнем')
             left_top_ind = 0
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = point_x[left_top_ind : right_top_ind + 1], point_y[left_top_ind : right_top_ind + 1]
@@ -191,7 +191,7 @@ def find_bbox_coord(point_x, point_y):
                 right_down_ind = point_x.index(bottom_edge_x[1])
             bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]
         elif top_edge_x[0] == point_x[-1]:
-            print('Первая точка сверху после угла')
+            #print('Первая точка сверху после угла')
             left_top_ind = -1
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = [point_x[-1]], [point_y[-1]]
@@ -205,7 +205,7 @@ def find_bbox_coord(point_x, point_y):
                 right_down_ind = point_x.index(bottom_edge_x[1])
             bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]
         elif bottom_edge_x[0] == point_x[0]:
-            print('Первая точка в левом нижнем')
+            #print('Первая точка в левом нижнем')
             left_top_ind = point_x.index(top_edge_x[0])
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = point_x[left_top_ind : right_top_ind + 1], point_y[left_top_ind : right_top_ind + 1]
@@ -231,6 +231,7 @@ def find_bbox_coord(point_x, point_y):
         mid_arithmetic_h = round((bbox_height_left + bbox_height_right)/2, 1)
         if mid_arithmetic_h > 150:
             is_good_rect = False
+            print('Большой полигон, H = ', mid_arithmetic_h)
     else:
         bottom_x, bottom_y, top_x, top_y = [], [], [], []
         mid_arithmetic_h = 0
@@ -254,9 +255,7 @@ with open('input.txt', encoding = 'utf8') as fp:
         height, width = img_gray.shape[:2]
 
         second = js_line['result']
-        try:
-            img_counter = img_counter + 1
-            
+        try:          
             All_x_under_word, All_y_under_word, All_word_height = [], [], []
             All_image_dots = 0            
             # second - один словарик для одного из изображений из множества {"file":"name.jpg","result":[...]}, 
@@ -284,7 +283,7 @@ with open('input.txt', encoding = 'utf8') as fp:
                 if is_good_rect:
                     # функция определяющая где верх и низ полигона и возвращающая их точки
                     is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h = find_bbox_coord(point_x, point_y)
-
+                if is_good_rect:
                     # kx_plus_b, возвращающая точки под полигоном с шагом 1 пикс по оХ
                     poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y)    
                 else:
@@ -300,16 +299,18 @@ with open('input.txt', encoding = 'utf8') as fp:
                 All_y_under_word = All_y_under_word + y_plus_delta
                 All_word_height = All_word_height + [mid_arithmetic_h for i in range(poligon_dots)]
 
-            cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-            data_annotation.write('image_{}.jpg'.format(img_counter) + ',' + str(height) + ',' + str(width))
-            
-            data_annotation.write(',' + str(All_image_dots))
-            All_w_char = 13
-            All_char = '.'
-            for z in range(All_image_dots):
-                data_annotation.write(',' + str(All_x_under_word[z]) + ',' + str(All_y_under_word[z]))
-                data_annotation.write(',' + str(All_w_char) + ',' + str(All_word_height[z]) + ',' + str(All_char))         
-            data_annotation.write('\n')
+            if All_image_dots > 0:
+                img_counter = img_counter + 1
+                cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+                data_annotation.write('image_{}.jpg'.format(img_counter) + ',' + str(height) + ',' + str(width))
+                
+                data_annotation.write(',' + str(All_image_dots))
+                All_w_char = 13
+                All_char = '.'
+                for z in range(All_image_dots):
+                    data_annotation.write(',' + str(All_x_under_word[z]) + ',' + str(All_y_under_word[z]))
+                    data_annotation.write(',' + str(All_w_char) + ',' + str(All_word_height[z]) + ',' + str(All_char))         
+                data_annotation.write('\n')
             
         except:
             cv2.imwrite('./error_img/{}'.format(file_name[0]), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
