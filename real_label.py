@@ -1,3 +1,11 @@
+"""
+write csv in format:
+
+name image (jpeg),height image, width image,number of points, 
+x_coordinate of next point, y_coordinate of next point, width of next point, 
+height of next point, value of symbol under which is next point, and so on
+
+"""
 import numpy as np
 import h5py 
 import cv2
@@ -12,7 +20,7 @@ def lin_reg(point_x, point_y):
     y = np.array(point_y)
 
     model = LinearRegression().fit(x, y)
-
+    
     k = model.coef_[0]
     b = model.intercept_
     return k, b
@@ -60,7 +68,6 @@ def kx_plus_b(bottom_x, bottom_y):
     return poligon_dots, x_plus_delta, y_plus_delta
 
 def find_4_dots(point_x, point_y):
-    #print(point_x, point_y)
     i = 0
     curve = []  #c**2 = a**2 + b**2 - 2ab*cos_alpha
     
@@ -96,7 +103,13 @@ def find_4_dots(point_x, point_y):
 
     curve.append(abs(cos_alpha))
 
-    curve_out_of_edges = curve.copy()
+    curve_out_of_repeats = []
+    for j in range(len(curve)): # add delta for the reason of not mess in equal angles
+        delta = 10**(-20)
+        curve_out_of_repeats.append(curve[j] + delta*j)
+
+    curve_out_of_edges = curve_out_of_repeats.copy()
+
     edge_angles = []
     edge_x = []
     edge_y = []
@@ -105,7 +118,7 @@ def find_4_dots(point_x, point_y):
         curve_out_of_edges.remove(min(curve_out_of_edges))
 
     for i in edge_angles:
-        index = curve.index(i)
+        index = curve_out_of_repeats.index(i)
 
         edge_x.append(point_x[index])
         edge_y.append(point_y[index])
@@ -120,11 +133,21 @@ def find_bbox_coord(point_x, point_y):
 
     if len(point_x) == 4:
         is_square = False
-        #((x2 - x1)**2+(y2 - y1)**2)**0.5
-        # Проверка соотношения сторон
-        if is_square:   # Проверить наклон ребер, если он небольшой далее:
-            top_x, top_y = point_x[2:], point_y[2:]
-            bottom_x, bottom_y = point_x[:-2], point_y[:-2]
+       
+        quadrate_width = ((point_x[1] - point_x[0])**2+(point_y[1] - point_y[0])**2)**0.5
+        quadrate_height = ((point_x[1] - point_x[2])**2+(point_y[1] - point_y[2])**2)**0.5
+        aspect_ratio = quadrate_width / quadrate_height
+        if aspect_ratio > 0.8 and aspect_ratio < 1.3:
+            is_square = True
+
+        if is_square: 
+            k = (point_y[0] - point_y[3])/(point_x[0] - point_x[3])
+            print('For square k = ', k)
+            if k < 1.5 or k > -1.5:
+                is_good_rect = False # too much tilt
+
+            top_x, top_y = point_x[:2], point_y[:2]
+            bottom_x, bottom_y = point_x[2:], point_y[2:]
         else:
             k, b = lin_reg(point_x, point_y)
 
@@ -154,7 +177,7 @@ def find_bbox_coord(point_x, point_y):
                     top_edge_x.append(edge_x[i])
                     top_edge_y.append(edge_y[i])
         
-        # Переделать нахождение дна и верхушки полигона
+        # Переделать нахождение дна и верхушки полигона при большом кол-ве ошибок
         if point_x.index(top_edge_x[0]) == 0:
             print('Первая точка в левом верхнем')
             left_top_ind = 0
@@ -197,17 +220,6 @@ def find_bbox_coord(point_x, point_y):
         else:
             print('Первая точка в другом положении')
             is_good_rect = False
-
-            """left_top_ind = point_x.index(top_edge_x[0])
-            right_top_ind = point_x.index(top_edge_x[1])
-            top_x, top_y = point_x[left_top_ind : right_top_ind + 1], point_y[left_top_ind : right_top_ind + 1]
-
-            left_down_ind = point_x.index(bottom_edge_x[0])
-            if bottom_edge_x[1] == top_edge_x[1]:
-                right_down_ind = point_x.index(bottom_edge_x[1]) + 1
-            else:
-                right_down_ind = point_x.index(bottom_edge_x[1])
-            bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]"""
 
     if is_good_rect:
 
