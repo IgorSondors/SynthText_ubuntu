@@ -15,7 +15,7 @@ def lin_reg(point_x, point_y):
 
     k = model.coef_[0]
     b = model.intercept_
-    return k, b, model
+    return k, b
 
 def draw_black_rect(img_gray, point_pairs):
     cnt = []
@@ -60,7 +60,7 @@ def kx_plus_b(bottom_x, bottom_y):
     return poligon_dots, x_plus_delta, y_plus_delta
 
 def find_4_dots(point_x, point_y):
-    print(point_x, point_y)
+    #print(point_x, point_y)
     i = 0
     curve = []  #c**2 = a**2 + b**2 - 2ab*cos_alpha
     
@@ -126,10 +126,10 @@ def find_bbox_coord(point_x, point_y):
             top_x, top_y = point_x[2:], point_y[2:]
             bottom_x, bottom_y = point_x[:-2], point_y[:-2]
         else:
-            k, b, model = lin_reg(point_x, point_y)
+            k, b = lin_reg(point_x, point_y)
 
-            if point_y[0] > k * point_x[0] + b:
-                is_good_rect = False     
+            #if point_y[0] > k * point_x[0] + b:
+            #    is_good_rect = False     
             for i in range(len(point_x)):
                 if point_y[i] > k * point_x[i] + b:
                     bottom_x.append(point_x[i])
@@ -140,7 +140,7 @@ def find_bbox_coord(point_x, point_y):
     elif len(point_x) > 4:
         edge_x, edge_y = find_4_dots(point_x, point_y)
 
-        k, b, model = lin_reg(edge_x, edge_y)
+        k, b = lin_reg(edge_x, edge_y)
 
         bottom_edge_x = []
         bottom_edge_y = []
@@ -196,7 +196,9 @@ def find_bbox_coord(point_x, point_y):
             bottom_x, bottom_y = [point_x[0]] + bottom_x, [point_y[0]] + bottom_y
         else:
             print('Первая точка в другом положении')
-            left_top_ind = point_x.index(top_edge_x[0])
+            is_good_rect = False
+
+            """left_top_ind = point_x.index(top_edge_x[0])
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = point_x[left_top_ind : right_top_ind + 1], point_y[left_top_ind : right_top_ind + 1]
 
@@ -205,12 +207,23 @@ def find_bbox_coord(point_x, point_y):
                 right_down_ind = point_x.index(bottom_edge_x[1]) + 1
             else:
                 right_down_ind = point_x.index(bottom_edge_x[1])
-            bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]
+            bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]"""
 
-    bottom_x, bottom_y = zip(*sorted(zip(bottom_x, bottom_y)))   
-    top_x, top_y = zip(*sorted(zip(top_x, top_y)))
+    if is_good_rect:
+
+        bottom_x, bottom_y = zip(*sorted(zip(bottom_x, bottom_y)))   
+        top_x, top_y = zip(*sorted(zip(top_x, top_y)))
+
+        bbox_height_left = ((top_x[0] - bottom_x[0])**2+(top_y[0] - bottom_y[0])**2)**0.5
+        bbox_height_right = ((top_x[-1] - bottom_x[-1])**2+(top_y[-1] - bottom_y[-1])**2)**0.5
+        mid_arithmetic_h = round((bbox_height_left + bbox_height_right)/2, 1)
+        if mid_arithmetic_h > 150:
+            is_good_rect = False
+    else:
+        bottom_x, bottom_y, top_x, top_y = [], [], [], []
+        mid_arithmetic_h = 0
     
-    return is_good_rect, bottom_x, bottom_y, top_x, top_y
+    return is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h
 
 with open('input.txt', encoding = 'utf8') as fp:
     lines = fp.readlines()
@@ -232,7 +245,7 @@ with open('input.txt', encoding = 'utf8') as fp:
         try:
             img_counter = img_counter + 1
             
-            All_x_under_word, All_y_under_word = [], []
+            All_x_under_word, All_y_under_word, All_word_height = [], [], []
             All_image_dots = 0            
             # second - один словарик для одного из изображений из множества {"file":"name.jpg","result":[...]}, 
             # включающий в себя [...] = [{"type":"polygon","data":[{"x":0.4,"y":0.4}, {}...], "readable":t/f}, ...]
@@ -258,7 +271,7 @@ with open('input.txt', encoding = 'utf8') as fp:
 
                 if is_good_rect:
                     # функция определяющая где верх и низ полигона и возвращающая их точки
-                    is_good_rect, bottom_x, bottom_y, top_x, top_y = find_bbox_coord(point_x, point_y)
+                    is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h = find_bbox_coord(point_x, point_y)
 
                     # kx_plus_b, возвращающая точки под полигоном с шагом 1 пикс по оХ
                     poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y)    
@@ -267,22 +280,23 @@ with open('input.txt', encoding = 'utf8') as fp:
 
                     img_gray = black
                     poligon_dots = 0
+                    mid_arithmetic_h = 'empty'
                     x_plus_delta, y_plus_delta = [], []
                                 
                 All_image_dots = All_image_dots + poligon_dots
                 All_x_under_word = All_x_under_word + x_plus_delta
                 All_y_under_word = All_y_under_word + y_plus_delta
+                All_word_height = All_word_height + [mid_arithmetic_h for i in range(poligon_dots)]
 
             cv2.imwrite('./real_frames/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
             data_annotation.write('image_{}.jpg'.format(img_counter) + ',' + str(height) + ',' + str(width))
             
             data_annotation.write(',' + str(All_image_dots))
-            All_w_char = 10
-            All_h_char = 10
+            All_w_char = 13
             All_char = '.'
             for z in range(All_image_dots):
                 data_annotation.write(',' + str(All_x_under_word[z]) + ',' + str(All_y_under_word[z]))
-                data_annotation.write(',' + str(All_w_char) + ',' + str(All_h_char) + ',' + str(All_char))         
+                data_annotation.write(',' + str(All_w_char) + ',' + str(All_word_height[z]) + ',' + str(All_char))         
             data_annotation.write('\n')
             
         except:
