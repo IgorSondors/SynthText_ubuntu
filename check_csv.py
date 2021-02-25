@@ -12,13 +12,53 @@ from sklearn.linear_model import LinearRegression
 start_time = time.time()
 
 def lin_reg(point_x, point_y):
-    x = np.array(point_x).reshape((-1, 1))
-    y = np.array(point_y)
+    i = 0
+    #print('edge_x, edge_y = ', point_x, point_y)
+    six_line_dict = {}
+    while i <= 2:
+        #print(i)
+        x1 =  point_x[i]
+        y1 = point_y[i]
+        x2 =  point_x[i + 1]
+        y2 = point_y[i + 1]
+        x0 =  point_x[i - 1]
+        y0 = point_y[i - 1]
+        
+        a = ((x2 - x1)**2+(y2 - y1)**2)**0.5
+        b = ((x1 - x0)**2+(y1 - y0)**2)**0.5
+        c = ((x2 - x0)**2+(y2 - y0)**2)**0.5
 
-    model = LinearRegression().fit(x, y)
+        six_line_dict[a] = [[x1, x2], [y1, y2]]
+        six_line_dict[b] = [[x0, x1], [y0, y1]]
+        #six_line_dict[c] = [[x0, x2], [y0, y2]]
+        i = i + 1
+        #print('six_line_dict = ', six_line_dict, len(six_line_dict))
+
+    six_line_length = six_line_dict.keys()
+    two_long_ribs = (sorted(six_line_length))[2:4]
+    #print(sorted(six_line_length))
+    #print('two_long_ribs = ', two_long_ribs)
+    #print(six_line_dict.keys())
+
     
-    k = model.coef_[0]
-    b = model.intercept_
+    first_line_xy = six_line_dict[two_long_ribs[0]]
+    #print('первая линия', first_line_xy)
+
+    k1 = (first_line_xy[1][0] - first_line_xy[1][1])/(first_line_xy[0][0] - first_line_xy[0][1])
+    b1 = first_line_xy[1][0] - k1 * first_line_xy[0][0]
+    #print(k1,'x + ', b1)
+    second_line_xy = six_line_dict[two_long_ribs[1]]
+    #print('вторая линия', second_line_xy)
+    
+    k2 = (second_line_xy[1][0] - second_line_xy[1][1])/(second_line_xy[0][0] - second_line_xy[0][1])
+    b2 = second_line_xy[1][0] - k2 * second_line_xy[0][0]
+    #print(k2,'x + ', b2)
+
+    k_list, b_list = [k1, k2], [b1, b2]
+    b_list, k_list = zip(*sorted(zip(b_list, k_list)))
+
+    k, b = k_list[1], b_list[1]
+    #print('результат: ', k,'x + ', b)
     return k, b
 
 def draw_black_rect(im, point_pairs):
@@ -57,7 +97,7 @@ def kx_plus_b(bottom_x, bottom_y):
         except:
             print(bottom_y[i],bottom_y[i+1],bottom_x[i],bottom_x[i+1])
             print('ZeroDivision')
-    x_plus_delta.append(bottom_x[-1])
+    x_plus_delta.append(int(bottom_x[-1]))
     y_plus_delta.append(round(bottom_y[-1],1))
     poligon_dots = poligon_dots + 1
 
@@ -101,25 +141,34 @@ def find_4_dots(point_x, point_y):
 
     curve_out_of_repeats = []
     for j in range(len(curve)): # add delta for the reason of not mess in equal angles
-        delta = 10**(-20)
+        delta = 10**(-10)
         curve_out_of_repeats.append(curve[j] + delta*j)
-
-    curve_out_of_edges = curve_out_of_repeats.copy()
 
     edge_angles = []
     edge_x = []
     edge_y = []
-    for i in range(4):
-        edge_angles.append(min(curve_out_of_edges))
-        curve_out_of_edges.remove(min(curve_out_of_edges))
+    for i in range(len(curve_out_of_repeats)):
+        if curve_out_of_repeats[i] < 0.7: # cos(pi/4)
+            edge_angles.append(curve_out_of_repeats[i])
+            edge_x.append(point_x[i])
+            edge_y.append(point_y[i])
 
-    for i in edge_angles:
-        index = curve_out_of_repeats.index(i)
+    if len(edge_angles) != 4:
+        curve_out_of_edges = curve_out_of_repeats.copy()
+        edge_angles = []
+        edge_x = []
+        edge_y = []
+        for i in range(4):
+            edge_angles.append(min(curve_out_of_edges))
+            curve_out_of_edges.remove(min(curve_out_of_edges))
 
-        edge_x.append(point_x[index])
-        edge_y.append(point_y[index])
+        for i in edge_angles:
+            index = curve_out_of_repeats.index(i)
 
-    edge_x, edge_y = zip(*sorted(zip(edge_x, edge_y)))
+            edge_x.append(point_x[index])
+            edge_y.append(point_y[index])
+
+    #edge_x, edge_y = zip(*sorted(zip(edge_x, edge_y)))
     return edge_x, edge_y
 
 def find_bbox_coord(point_x, point_y):
@@ -137,26 +186,38 @@ def find_bbox_coord(point_x, point_y):
             is_square = True
 
         if is_square: 
-            k = (point_y[0] - point_y[3])/(point_x[0] - point_x[3])
+            k1 = (point_y[0] - point_y[2])/(point_x[0] - point_x[2])
+            k2 = (point_y[1] - point_y[3])/(point_x[1] - point_x[3])
             print('Квадрат')
-            if k < 1.5 or k > -1.5:
+            if k1 < 0 or k2 > 0:#k < 1.5 or k > -1.5:
                 is_good_rect = False # too much tilt
                 print('Квадрат сильно наклонен')
             top_x, top_y = point_x[:2], point_y[:2]
             bottom_x, bottom_y = point_x[2:], point_y[2:]
         else:
-            k, b = lin_reg(point_x, point_y)
+            print('Прямоугольник')
+            out_of_repeats = []
+            for j in range(len(point_x)): # add delta for the reason of not mess in equal ribs
+                delta = 10**(-6)
+                out_of_repeats.append(point_x[j] + delta*j)
+            point_x = out_of_repeats
 
-            #if point_y[0] > k * point_x[0] + b:
-            #    is_good_rect = False     
+            k, b = lin_reg(point_x, point_y)
+   
             for i in range(len(point_x)):
-                if point_y[i] > k * point_x[i] + b:
+                if point_y[i] == int(k * point_x[i] + b):
                     bottom_x.append(point_x[i])
                     bottom_y.append(point_y[i])
                 else:
                     top_x.append(point_x[i])
                     top_y.append(point_y[i])
+
     elif len(point_x) > 4:
+        out_of_repeats = []
+        for j in range(len(point_x)): # add delta for the reason of not mess in equal angles
+            delta = 10**(-6)
+            out_of_repeats.append(point_x[j] + delta*j)
+        point_x = out_of_repeats
         edge_x, edge_y = find_4_dots(point_x, point_y)
 
         k, b = lin_reg(edge_x, edge_y)
@@ -166,28 +227,31 @@ def find_bbox_coord(point_x, point_y):
         top_edge_x = []
         top_edge_y = []
         for i in range(len(edge_x)):
-                if edge_y[i] > k * edge_x[i] + b:
+                if edge_y[i] == int(k * edge_x[i] + b):
                     bottom_edge_x.append(edge_x[i])
                     bottom_edge_y.append(edge_y[i])
                 else:
                     top_edge_x.append(edge_x[i])
                     top_edge_y.append(edge_y[i])
-        
+        #print('top_edge_x = ', top_edge_x)
+        #print('top_edge_y = ', top_edge_y)
+        #print('bottom_edge_x = ', bottom_edge_x)
+        #print('bottom_edge_y = ', bottom_edge_y)
+        bottom_edge_x, bottom_edge_y = zip(*sorted(zip(bottom_edge_x, bottom_edge_y)))   
+        top_edge_x, top_edge_y = zip(*sorted(zip(top_edge_x, top_edge_y)))
         # Переделать нахождение дна и верхушки полигона при большом кол-ве ошибок
         if point_x.index(top_edge_x[0]) == 0:
-            #print('Первая точка в левом верхнем')
+            print('Первая точка в левом верхнем')
             left_top_ind = 0
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = point_x[left_top_ind : right_top_ind + 1], point_y[left_top_ind : right_top_ind + 1]
 
             left_down_ind = point_x.index(bottom_edge_x[0])
-            if bottom_edge_x[1] == top_edge_x[1]:
-                right_down_ind = point_x.index(bottom_edge_x[1]) + 1
-            else:
-                right_down_ind = point_x.index(bottom_edge_x[1])
-            bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]
+            right_down_ind = point_x.index(bottom_edge_x[1])
+
+            bottom_x, bottom_y = point_x[right_down_ind : left_down_ind + 1], point_y[right_down_ind : left_down_ind + 1]
         elif top_edge_x[0] == point_x[-1]:
-            #print('Первая точка сверху после угла')
+            print('Первая точка сверху после угла')
             left_top_ind = -1
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = [point_x[-1]], [point_y[-1]]
@@ -195,13 +259,12 @@ def find_bbox_coord(point_x, point_y):
             top_y = top_y + point_y[0 : right_top_ind + 1]
 
             left_down_ind = point_x.index(bottom_edge_x[0])
-            if bottom_edge_x[1] == top_edge_x[1]:
-                right_down_ind = point_x.index(bottom_edge_x[1]) + 1
-            else:
-                right_down_ind = point_x.index(bottom_edge_x[1])
-            bottom_x, bottom_y = point_x[right_down_ind : ], point_y[right_down_ind : ]
+            right_down_ind = point_x.index(bottom_edge_x[1])
+
+            bottom_x, bottom_y = point_x[right_down_ind : left_down_ind + 1], point_y[right_down_ind : left_down_ind + 1]
+            
         elif bottom_edge_x[0] == point_x[0]:
-            #print('Первая точка в левом нижнем')
+            print('Первая точка в левом нижнем')
             left_top_ind = point_x.index(top_edge_x[0])
             right_top_ind = point_x.index(top_edge_x[1])
             top_x, top_y = point_x[left_top_ind : right_top_ind + 1], point_y[left_top_ind : right_top_ind + 1]
@@ -218,7 +281,8 @@ def find_bbox_coord(point_x, point_y):
             is_good_rect = False
 
     if is_good_rect:
-
+        #print(bottom_x, bottom_y)
+        #print(top_x, top_y)
         bottom_x, bottom_y = zip(*sorted(zip(bottom_x, bottom_y)))   
         top_x, top_y = zip(*sorted(zip(top_x, top_y)))
 
@@ -226,8 +290,9 @@ def find_bbox_coord(point_x, point_y):
         bbox_height_right = ((top_x[-1] - bottom_x[-1])**2+(top_y[-1] - bottom_y[-1])**2)**0.5
         mid_arithmetic_h = round((bbox_height_left + bbox_height_right)/2, 1)
         if mid_arithmetic_h > 150:
-            is_good_rect = False
-            print('Большой полигон, H = ', mid_arithmetic_h)
+            #print('Большой полигон, H = ', mid_arithmetic_h)
+            #is_good_rect = False
+            bottom_x, bottom_y, top_x, top_y = [], [], [], []
     else:
         bottom_x, bottom_y, top_x, top_y = [], [], [], []
         mid_arithmetic_h = 0
@@ -236,8 +301,8 @@ def find_bbox_coord(point_x, point_y):
 
 def top_down_points(im, bottom_x, bottom_y, top_x, top_y):
     # Radius of circle
-    radius = 3
-    thickness = 3
+    radius = 1
+    thickness = 1
     for i in range(len(bottom_x)):
         x, y = bottom_x[i], bottom_y[i]
         center_coordinates = (int(x), int(y))
@@ -255,7 +320,7 @@ def top_down_points(im, bottom_x, bottom_y, top_x, top_y):
 with open('input.txt', encoding = 'utf8') as fp:
     lines = fp.readlines()
     img_counter = -1
-    data_annotation = open('./ds_images.csv', 'w')
+    #data_annotation = open('./ds_images.csv', 'w')
 
     for line in lines:
         js_line = json.loads(line)
@@ -294,13 +359,16 @@ with open('input.txt', encoding = 'utf8') as fp:
                     point_pairs.append(int(y))
 
                 if is_good_rect:
+                    #cv2.imwrite('./two_line_frames/{}'.format(file_name[0]), im, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
                     # функция определяющая где верх и низ полигона и возвращающая их точки
                     is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h = find_bbox_coord(point_x, point_y)
-                if is_good_rect:
+                if is_good_rect and mid_arithmetic_h <= 150:
                     # kx_plus_b, возвращающая точки под полигоном с шагом 1 пикс по оХ
                     poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y) 
                     poligon_dots_top, x_plus_delta_top, y_plus_delta_top = kx_plus_b(top_x, top_y)
                     top_down_points(im, x_plus_delta, y_plus_delta, x_plus_delta_top, y_plus_delta_top)
+                elif is_good_rect and mid_arithmetic_h > 150:
+                    poligon_dots = 0
 
                 else:
                     black = draw_black_rect(im, point_pairs)
@@ -314,7 +382,8 @@ with open('input.txt', encoding = 'utf8') as fp:
                 
             if All_image_dots > 0:
                 img_counter = img_counter + 1
-                cv2.imwrite('./two_line_frames/image_{}.jpg'.format(img_counter), im, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+                #cv2.imwrite('./two_line_frames/image_{}.jpg'.format(img_counter), im, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+                cv2.imwrite('./two_line_frames/{}'.format(file_name[0]), im, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
             
         except:
             cv2.imwrite('./error_img/{}'.format(file_name[0]), im, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
