@@ -1,3 +1,8 @@
+"""
+csv in format:
+image_{img_counter}_{word_counter}.jpg, 32, stride_width, dots_number, X_center, char_value, char_code,
+                                                                       X_center, char_value, char_code etc
+"""
 import numpy as np
 import math
 import h5py 
@@ -56,7 +61,7 @@ def main(db_fname):
     dsets = sorted(db['data'].keys())
     print("total number of images : ",len(dsets))
 
-    my_ch_label = open('ocr_strides/ds_images.csv', 'w', encoding = 'UTF-8')
+    recognizer_label = open('ocr_strides/ds_images.csv', 'w', encoding = 'UTF-8')
     img_counter = -1 
     for k in dsets:
         rgb = db['data'][k][...]
@@ -64,10 +69,11 @@ def main(db_fname):
         wordBB = db['data'][k].attrs['wordBB']
         txt = db['data'][k].attrs['txt']
 
-        print("image name        : ", k)
-        print("  ** no. of chars : ", charBB.shape[-1])
-        print("  ** no. of words : ", wordBB.shape[-1])
-        print("  ** text         : ",  txt)
+        #print("image name        : ", k)
+        #print("  ** no. of chars : ", charBB.shape[-1])
+        #print("  ** no. of words : ", wordBB.shape[-1])
+        #print("  ** text         : ",  txt)
+        
         img_counter = img_counter + 1
 
         open_cv_image = np.array(rgb) 
@@ -91,6 +97,7 @@ def main(db_fname):
             new_txt = new_txt + splitted
         #print('new_txt = ', new_txt)
         #print('charBB = ', charBB)
+        word_counter = -1
         for j in range(len(new_txt)): #кол-во слов
             ochered = ochered + 1
             #print('номер = ', j,  ' Слово = ', new_txt[j], ', кол-во букв = ', len(str(new_txt[j])),)
@@ -105,7 +112,6 @@ def main(db_fname):
             h_of_next_ch_word = []
 
             x_top_left_word, x_top_right_word, y_top_left_word, y_top_right_word = [], [], [], []
-            my_ch_label.write('image_{}_{}.jpg'.format(img_counter, j))
 
             while i < num_ch_per_w:
                 i = i + 1
@@ -143,16 +149,18 @@ def main(db_fname):
                     ochered = ochered + 1
             
             tg_alpha, b, model = lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word)
-            #try:            
-            x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
-                                                                x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
-                                                                y_top_left_word, y_top_right_word)
-            #except:
-            #    print('Bad word!!!', '\n', word)
-            my_ch_label.write('\n')
+            try:      
+                word_counter = word_counter + 1
+                recognizer_label.write('image_{}_{}.jpg'.format(img_counter, word_counter))
+                x_down_right_word, y_down_left_word = dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, recognizer_label, word_counter,   
+                                                                    x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                                                                    y_top_left_word, y_top_right_word)
+                recognizer_label.write('\n')
+            except:
+                print('Bad word!!!', '\n', word)                      
     db.close()
     
-def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, my_ch_label, j,   
+def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, recognizer_label, word_counter,   
                     x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                     y_top_left_word, y_top_right_word):
 
@@ -177,21 +185,15 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
                                                                                                         tg_alpha, word, h_of_word, 
                                                                                                         y_top_left, y_top_right, y_down_left, y_down_right, 
                                                                                                         x_top_left, x_top_right, x_down_left, x_down_right)
-    #print('h_of_word = ', h_of_word)
     
     h_of_word_new = h_of_word + delta_b1 + delta_b2
-    #print('After h_of_word = ', h_of_word)
-    #print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
-    
+
     width = w_of_word
-    height = h_of_word
-    #height_div = height/int(h_of_word_new)
-    #height_div = int(h_of_word_new)/height
-    #print('height_div = ', height_div)
-    #width = int(width * height_div) * 2
-    width = int(width * 2)
     height = 32
-    print('Before width = ', w_of_word, ',','After width = ', width)
+    height_div = height/int(h_of_word_new)
+    width = int(width * height_div * 2)
+    
+    #print('Before width = ', w_of_word, ',','After width = ', width)
 
     src_pts =  np.array([[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left]], dtype="float32")
     dst_pts = np.array([[0, 0],[width-1, 0],[width-1, height-1],[0, height-1]], dtype="float32")
@@ -201,11 +203,13 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
     dst = cv2.warpPerspective(img_gray, M, (width, height))
 
     resized_img_word = dst
-    #print('resized_img_word.shape = ', resized_img_word.shape)
-    resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 1), dtype=np.uint8) ))
-    resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 1), dtype=np.uint8), resized_img_word ))
-    #print('After concat resized_img_word.shape = ', resized_img_word.shape)
-    cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    
+    resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8) ))
+    resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8), resized_img_word ))
+    
+    #cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word)
+
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
@@ -213,7 +217,8 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
 
     #print('after transformations:', '\n', 'width = ', str(img_word.shape[1]), 'height = ', str(img_word.shape[0]))
     #print('after np zeros:', '\n', 'width = ', str(resized_img_word.shape[1]), 'height = ', str(resized_img_word.shape[0]))
-    my_ch_label.write(',' + str(resized_img_word.shape[0]) + ',' + str(resized_img_word.shape[1]))
+    dots_num = len(coordinates)
+    recognizer_label.write(',' + str(resized_img_word.shape[0]) + ',' + str(resized_img_word.shape[1]) + ',' + str(dots_num))
 
     ch_code = []
     short_ch = 'абвгеёжзийклмнопстхчшъыьэюя'
@@ -246,25 +251,22 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
                 code = code + 2**1    
         ch_code.append(code)
 
-    img_rgb = cv2.cvtColor(resized_img_word, cv2.COLOR_GRAY2RGB)
-    quoted_list = ['"', "'", ',']
-    for i in range(len(coordinates)):
-        # Write coord with horizontal border
-        if word[i] in quoted_list:
-            my_ch_label.write(',' + str(coordinates[i][0] + 32) + ',' + '"' + str(word[i]) + '"' + ',' + '{}'.format(ch_code[i]))
-        else:
-            my_ch_label.write(',' + str(coordinates[i][0] + 32) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
-        # Check coord
-        img_rgb = cv2.circle(img_rgb, (int(coordinates[i][0] + 32), 16), radius=0, color=(0, 0, 255), thickness=3)
-
-    cv2.imwrite('ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, j, word), img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    #img_rgb = cv2.cvtColor(resized_img_word, cv2.COLOR_GRAY2RGB)
     
-    img_rgb = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
+    for i in range(len(coordinates)):
+        # Write coord with horizontal border       
+        recognizer_label.write(',' + str(coordinates[i][0] + 64) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
+        # Check coord
+        #img_rgb = cv2.circle(img_rgb, (int(coordinates[i][0] + 64), 16), radius=0, color=(0, 0, 255), thickness=3)
+
+    #cv2.imwrite('ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, word_counter, word), img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    
+    """img_rgb = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
     for i in coordinates_old: # Very slow
         # Horizontal border
         img_rgb = cv2.circle(img_rgb, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
         
-    cv2.imwrite("ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    cv2.imwrite("ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
     
     return x_down_right_word, y_down_left_word
 
@@ -275,10 +277,9 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
     #print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
     #[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
     
-    delta_b1 = 0.5 * h_of_word#(random.randint(3000, 4000)) / 10000 * h_of_word
-    delta_b2 = 0.5 * h_of_word#(random.randint(3000, 4000)) / 10000 * h_of_word
+    delta_b1 = (random.randint(3000, 4000)) / 10000 * h_of_word
+    delta_b2 = (random.randint(3000, 4000)) / 10000 * h_of_word
     
-
     if tg_alpha != 0:
         #print('tg_alpha != 0:',word, tg_alpha)
         if tg_alpha < 0:
@@ -314,6 +315,6 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
     return y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right, delta_b1, delta_b2
 
 if __name__=='__main__':   
-    main('10_kern.h5')
+    main('40k_13-120.h5')
 
 print('end time = ', time.time() - start_time)
