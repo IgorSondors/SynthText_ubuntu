@@ -7,16 +7,56 @@ import random
 from sklearn.linear_model import LinearRegression
 import time
 
-from common import *
-
 start_time = time.time()
 
+def apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
+                                y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
+                                w_of_next_ch_word, h_of_next_ch_word, M):
+    coordinates = []
+    coordinates_old = []
+    for i in range(len(x_down_left_word)):
+
+        middle_x = (x_down_left_word[i] + x_down_right_word[i] + x_top_left_word[i] + x_top_right_word[i])/4
+        middle_y  = (y_down_left_word[i] + y_down_right_word[i] + y_top_left_word[i] + y_top_right_word[i])/4
+        coordinates_old.append((int(middle_x), int(middle_y)))
+        middle_x, middle_y = perspective_transform_coordinates([middle_x, middle_y], M)
+        coordinates.append((int(middle_x), int(middle_y)))
+    return coordinates, coordinates_old
+
+def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word):
+    x = np.array(x_down_left_word + x_down_right_word).reshape((-1, 1))
+    y = np.array(y_down_left_word + y_down_right_word)
+
+    model = LinearRegression().fit(x, y)
+    #print('intercept:', model.intercept_)
+    #print('slope:', model.coef_)
+    k = model.coef_[0]
+    b = model.intercept_
+    return k, b, model
+
+def perspective_transform_coordinates(coordinates, m_matrix):
+    """
+    Function Description: Apply perspective transformation to coordinates.
+    Parameters:
+    Return Value:
+    Exception Description:
+    Change History:
+    2020-07-30 12:00 function created.
+    """
+    # Perform the actual coordinates processing
+    coordinates.append(1)
+    new_coordinates = np.dot(m_matrix, coordinates)
+    new_coordinates[0] = round(new_coordinates[0] / new_coordinates[2], 1)
+    new_coordinates[1] = round(new_coordinates[1] / new_coordinates[2], 1)
+    return new_coordinates[:2]
+    
+    
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
     dsets = sorted(db['data'].keys())
-    print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
+    print("total number of images : ",len(dsets))
 
-    my_ch_label = open('results/my_label/ocr_strides/ds_images.csv', 'w')
+    my_ch_label = open('ocr_strides/ds_images.csv', 'w', encoding = 'UTF-8')
     img_counter = -1 
     for k in dsets:
         rgb = db['data'][k][...]
@@ -24,15 +64,15 @@ def main(db_fname):
         wordBB = db['data'][k].attrs['wordBB']
         txt = db['data'][k].attrs['txt']
 
-        print("image name        : ", colorize(Color.RED, k, bold=True))
-        print("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
-        print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
-        print("  ** text         : ", colorize(Color.GREEN, txt))
+        print("image name        : ", k)
+        print("  ** no. of chars : ", charBB.shape[-1])
+        print("  ** no. of words : ", wordBB.shape[-1])
+        print("  ** text         : ",  txt)
         img_counter = img_counter + 1
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-        cv2.imwrite('results/my_label/ocr_strides/images/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('ocr_strides/images/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
         chars_quantity = charBB.shape[-1]
 
@@ -45,15 +85,15 @@ def main(db_fname):
         
         for j in range(len(txt)):
             all_symbols = all_symbols + txt[j]
-            all_symbols = re.sub('[(\n) ]', '', all_symbols)
-            txt_for_split = re.sub('(\n)', ' ', txt[j])
+            all_symbols = re.sub('[\n ]', '', all_symbols)
+            txt_for_split = re.sub('\n', ' ', txt[j])
             splitted = txt_for_split.split()
             new_txt = new_txt + splitted
-        print('new_txt = ', new_txt)
+        #print('new_txt = ', new_txt)
         #print('charBB = ', charBB)
         for j in range(len(new_txt)): #кол-во слов
             ochered = ochered + 1
-            print('номер = ', j,  ' Слово = ', new_txt[j], ', кол-во букв = ', len(str(new_txt[j])),)
+            #print('номер = ', j,  ' Слово = ', new_txt[j], ', кол-во букв = ', len(str(new_txt[j])),)
             i = 0
             num_ch_per_w = len(str(new_txt[j])) #кол-во букв для данного слова
             x_down_left_word = []
@@ -69,7 +109,7 @@ def main(db_fname):
 
             while i < num_ch_per_w:
                 i = i + 1
-                print('Буква = ', all_symbols[ochered])
+                #print('Буква = ', all_symbols[ochered])
 
                 x_down_left = charBB[0][3][ochered]
                 y_down_left = charBB[1][3][ochered]
@@ -130,21 +170,28 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
     x_down_left, x_down_right = int(x_down_left_word[0]), int(x_down_right_word[-1])
     y_down_left, y_down_right = int(y_down_left_word[0]), int(y_down_right_word[-1])
 
-    h_of_word = min(h_of_next_ch_word)
-    w_of_word = (((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5)
-
+    h_of_word = max(h_of_next_ch_word)
+    w_of_word = ((x_down_right - x_down_left)**2+(y_down_right - y_down_left)**2)**0.5
+    
     y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right, delta_b1, delta_b2 = random_transform_coord(
                                                                                                         tg_alpha, word, h_of_word, 
                                                                                                         y_top_left, y_top_right, y_down_left, y_down_right, 
                                                                                                         x_top_left, x_top_right, x_down_left, x_down_right)
-    h_of_word = h_of_word + delta_b1 + delta_b2
+    #print('h_of_word = ', h_of_word)
     
+    h_of_word_new = h_of_word + delta_b1 + delta_b2
+    #print('After h_of_word = ', h_of_word)
     #print('before transformations:', '\n','width = ', w_of_word, 'height = ', h_of_word)
     
     width = w_of_word
+    height = h_of_word
+    #height_div = height/int(h_of_word_new)
+    #height_div = int(h_of_word_new)/height
+    #print('height_div = ', height_div)
+    #width = int(width * height_div) * 2
+    width = int(width * 2)
     height = 32
-    height_div = height/int(h_of_word)
-    width = int(width * height_div) * 2
+    print('Before width = ', w_of_word, ',','After width = ', width)
 
     src_pts =  np.array([[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left]], dtype="float32")
     dst_pts = np.array([[0, 0],[width-1, 0],[width-1, height-1],[0, height-1]], dtype="float32")
@@ -153,16 +200,12 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
     #directly warp the rotated rectangle to get the straightened rectangle
     dst = cv2.warpPerspective(img_gray, M, (width, height))
 
-    cv2.imwrite('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), dst, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-
-    img_word = cv2.imread('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), 1)
-
-    resized_img_word = img_word
-    resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8) ))
-    resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 3), dtype=np.uint8), resized_img_word ))
-
-    resized_img_word = cv2.cvtColor(resized_img_word, cv2.COLOR_RGB2GRAY)
-    cv2.imwrite('results/my_label/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    resized_img_word = dst
+    #print('resized_img_word.shape = ', resized_img_word.shape)
+    resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 32, 1), dtype=np.uint8) ))
+    resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 32, 1), dtype=np.uint8), resized_img_word ))
+    #print('After concat resized_img_word.shape = ', resized_img_word.shape)
+    cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
                                                                 y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
@@ -203,40 +246,27 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
                 code = code + 2**1    
         ch_code.append(code)
 
+    img_rgb = cv2.cvtColor(resized_img_word, cv2.COLOR_GRAY2RGB)
+    quoted_list = ['"', "'", ',']
     for i in range(len(coordinates)):
-        # Horizontal border
-        my_ch_label.write(',' + str(coordinates[i][0] + 32) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
-            
-        #img_word = cv2.circle(img_word, (coordinates[i][0] + 32, coordinates[i][1]), radius=0, color=(0, 0, 255), thickness=2)
+        # Write coord with horizontal border
+        if word[i] in quoted_list:
+            my_ch_label.write(',' + str(coordinates[i][0] + 32) + ',' + '"' + str(word[i]) + '"' + ',' + '{}'.format(ch_code[i]))
+        else:
+            my_ch_label.write(',' + str(coordinates[i][0] + 32) + ',' + str(word[i]) + ',' + '{}'.format(ch_code[i]))
+        # Check coord
+        img_rgb = cv2.circle(img_rgb, (int(coordinates[i][0] + 32), 16), radius=0, color=(0, 0, 255), thickness=3)
 
-        resized_img_word = cv2.circle(resized_img_word, (int(coordinates[i][0] + 32), 16), radius=0, color=(0, 0, 255), thickness=2)
-        
-        #cv2.imwrite('results/my_label/ocr_strides/real_frames/{}_{}'.format(k[:-2], j), img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-        #cv2.imwrite('results/resized/{}_{}'.format(k[:-2], j), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-        cv2.imwrite('results/my_label/ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, j, word), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-
-    """for i in coordinates_old: # Very slow
+    cv2.imwrite('ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, j, word), img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    
+    img_rgb = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
+    for i in coordinates_old: # Very slow
         # Horizontal border
+        img_rgb = cv2.circle(img_rgb, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
         
-        img_gray = cv2.circle(img_gray, (i[0], i[1]), radius=0, color=(255, 0, 0), thickness=2)
-        
-        cv2.imwrite("results/my_label/ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
+    cv2.imwrite("ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
     
     return x_down_right_word, y_down_left_word
-
-def apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
-                                y_down_right_word, y_down_left_word, y_top_left_word, y_top_right_word, 
-                                w_of_next_ch_word, h_of_next_ch_word, M):
-    coordinates = []
-    coordinates_old = []
-    for i in range(len(x_down_left_word)):
-
-        middle_x = (x_down_left_word[i] + x_down_right_word[i] + x_top_left_word[i] + x_top_right_word[i])/4
-        middle_y  = (y_down_left_word[i] + y_down_right_word[i] + y_top_left_word[i] + y_top_right_word[i])/4
-        coordinates_old.append((int(middle_x), int(middle_y)))
-        middle_x, middle_y = perspective_transform_coordinates([middle_x, middle_y], M)
-        coordinates.append((int(middle_x), int(middle_y)))
-    return coordinates, coordinates_old
 
 def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right):    
 
@@ -245,9 +275,8 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
     #print('[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left] = ', 
     #[x_top_left, y_top_left], [x_top_right, y_top_right], [x_down_right, y_down_right], [x_down_left, y_down_left])
     
-    delta_b = 11
-    delta_b1 = (random.randint(3000, 8000)) / 10000 * h_of_word
-    delta_b2 = (random.randint(3000, 8000)) / 10000 * h_of_word
+    delta_b1 = 0.5 * h_of_word#(random.randint(3000, 4000)) / 10000 * h_of_word
+    delta_b2 = 0.5 * h_of_word#(random.randint(3000, 4000)) / 10000 * h_of_word
     
 
     if tg_alpha != 0:
@@ -284,35 +313,7 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
 
     return y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right, delta_b1, delta_b2
 
-
-def lin_reg(x_down_left_word, y_down_left_word, x_down_right_word, y_down_right_word):
-    x = np.array(x_down_left_word + x_down_right_word).reshape((-1, 1))
-    y = np.array(y_down_left_word + y_down_right_word)
-
-    model = LinearRegression().fit(x, y)
-    #print('intercept:', model.intercept_)
-    #print('slope:', model.coef_)
-    k = model.coef_[0]
-    b = model.intercept_
-    return k, b, model
-
-def perspective_transform_coordinates(coordinates, m_matrix):
-    """
-    Function Description: Apply perspective transformation to coordinates.
-    Parameters:
-    Return Value:
-    Exception Description:
-    Change History:
-    2020-07-30 12:00 function created.
-    """
-    # Perform the actual coordinates processing
-    coordinates.append(1)
-    new_coordinates = np.dot(m_matrix, coordinates)
-    new_coordinates[0] = round(new_coordinates[0] / new_coordinates[2], 1)
-    new_coordinates[1] = round(new_coordinates[1] / new_coordinates[2], 1)
-    return new_coordinates[:2]
-    
 if __name__=='__main__':   
-    main('/home/sondors/SynthText_ubuntu/results/10.h5')
+    main('10_kern.h5')
 
 print('end time = ', time.time() - start_time)
