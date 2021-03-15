@@ -61,7 +61,7 @@ def main(db_fname):
     dsets = sorted(db['data'].keys())
     print("total number of images : ",len(dsets))
 
-    recognizer_label = open('ocr_strides/ds_images.csv', 'w', encoding = 'UTF-8')
+    recognizer_label = open('result/ocr_strides/ds_images.csv', 'w', encoding = 'cp1251')
     img_counter = -1 
     for k in dsets:
         rgb = db['data'][k][...]
@@ -78,7 +78,7 @@ def main(db_fname):
 
         open_cv_image = np.array(rgb) 
         img_gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-        cv2.imwrite('ocr_strides/images/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+        cv2.imwrite('result/ocr_strides/images/image_{}.jpg'.format(img_counter), img_gray, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
 
         chars_quantity = charBB.shape[-1]
 
@@ -157,7 +157,7 @@ def main(db_fname):
                                                                     y_top_left_word, y_top_right_word)
                 recognizer_label.write('\n')
             except:
-                print('Bad word!!!', '\n', word)                      
+                print('Bad word!!!', '\n', 'image_{}_{}.jpg'.format(img_counter, word_counter))                      
     db.close()
     
 def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, recognizer_label, word_counter,   
@@ -208,7 +208,7 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
     resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8), resized_img_word ))
     
     #cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-    cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word)
+    cv2.imwrite('result/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word)
 
 
     coordinates, coordinates_old = apply_center_coord_transform(x_down_left_word, x_down_right_word, x_top_left_word, x_top_right_word, 
@@ -315,6 +315,6 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
     return y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right, delta_b1, delta_b2
 
 if __name__=='__main__':   
-    main('40k_13-120.h5')
+    main('/home/sondors/SynthText_ubuntu/result/test_data.h5')
 
 print('end time = ', time.time() - start_time)
