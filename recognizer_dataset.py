@@ -157,7 +157,8 @@ def main(db_fname):
                                                                     y_top_left_word, y_top_right_word)
                 recognizer_label.write('\n')
             except:
-                print('Bad word!!!', '\n', 'image_{}_{}.jpg'.format(img_counter, word_counter))                      
+                print('Bad word!!!', '\n', 'image_{}_{}.jpg'.format(img_counter, word_counter))  
+                                
     db.close()
     
 def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h_of_next_ch_word, recognizer_label, word_counter,   
@@ -204,10 +205,10 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
 
     resized_img_word = dst
     
-    resized_img_word = cv2.hconcat((resized_img_word, np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8) ))
-    resized_img_word = cv2.hconcat((np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8), resized_img_word ))
+    resized_img_word = cv2.hconcat(resized_img_word, np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8))
+    resized_img_word = cv2.hconcat(np.zeros((np.shape(resized_img_word)[0], 64, 1), dtype=np.uint8), resized_img_word)
     
-    #cv2.imwrite('ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    #cv2.imwrite('result/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
     cv2.imwrite('result/ocr_strides/real_frames/image_{}_{}.jpg'.format(img_counter, word_counter), resized_img_word)
 
 
@@ -259,14 +260,14 @@ def dot_word_crop(tg_alpha, b, img_counter, img_gray, word, w_of_next_ch_word, h
         # Check coord
         #img_rgb = cv2.circle(img_rgb, (int(coordinates[i][0] + 64), 16), radius=0, color=(0, 0, 255), thickness=3)
 
-    #cv2.imwrite('ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, word_counter, word), img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+    #cv2.imwrite('result/ocr_strides/dots_word/image_{}_{}_{}.jpg'.format(img_counter, word_counter, word), img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
     
     """img_rgb = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
     for i in coordinates_old: # Very slow
         # Horizontal border
         img_rgb = cv2.circle(img_rgb, (i[0], i[1]), radius=0, color=(0, 0, 255), thickness=2)
         
-    cv2.imwrite("ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
+    cv2.imwrite("result/ocr_strides/dots_images/image_{}_dots.jpg".format(img_counter),img_rgb, [int(cv2.IMWRITE_JPEG_QUALITY), 100])"""
     
     return x_down_right_word, y_down_left_word
 
@@ -315,6 +316,6 @@ def random_transform_coord(tg_alpha, word, h_of_word, y_top_left, y_top_right, y
     return y_top_left, y_top_right, y_down_left, y_down_right, x_top_left, x_top_right, x_down_left, x_down_right, delta_b1, delta_b2
 
 if __name__=='__main__':   
-    main('/home/sondors/SynthText_ubuntu/result/test_data.h5')
+    main('result/test_data.h5')
 
 print('end time = ', time.time() - start_time)
