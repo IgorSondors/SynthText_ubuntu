@@ -238,7 +238,7 @@ def main(db_fname):
         word_counter = -1
         for j in range(len(new_txt)): # word quantity
             ochered = ochered + 1
-            #print('num = ', j,  ' Word = ', new_txt[j], ', char quantity = ', len(str(new_txt[j])),)
+            #print('num = ', j,  ' Word = ', new_txt[j], ', char quantity = ', len(str(new_txt[j])))
             i = 0
             num_ch_per_w = len(str(new_txt[j])) #char quantity for one word
             x_down_left_word = []

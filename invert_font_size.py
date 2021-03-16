@@ -21,22 +21,22 @@ xs = []
 models = {} #linear model
 
 FS = FontState()
-#plt.figure()
-print('FS.fonts', FS.fonts)
-print('FS.fonts len', len(FS.fonts))
+plt.figure()
+#print('FS.fonts', FS.fonts)
+#print('FS.fonts len', len(FS.fonts))
 for i in range(len(FS.fonts)):#xrange(len(FS.fonts)):
-	print(i)
+	print(FS.fonts[i])
 	font = freetype.Font(FS.fonts[i], size=12)
 	h = []
 	for y in ys:
 		#print(ys)
-		#print(y)
+		#print('y is', y)
 		#print(font)
-
-		#print(font.get_sized_glyph_height(float(y)))
+		#print('font is', font)
+		#print('font.get_sized_glyph_height(float(y))', font.get_sized_glyph_height(float(y)))
 		h.append(font.get_sized_glyph_height(float(y)))
-		#print(h)
-	#print(h)
+		#print('h is', h)
+	print(h, len(h))
 	h = np.array(h)
 	m,_,_,_ = np.linalg.lstsq(A,h)
 	models[font.name] = m

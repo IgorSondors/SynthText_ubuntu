@@ -47,8 +47,7 @@ def crop_safe(arr, rect, bbs=[], pad=0):
     if len(bbs) > 0:
         for i in range(len(bbs)):
             bbs[i,0] -= v0[0]
-            bbs[i,1] -= v0[1]
-        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/2/crop_safe-arr-7-arr-{}.jpg'.format(bbs), arr.swapaxes(0,1))    
+            bbs[i,1] -= v0[1]   
         return arr, bbs
     else:
         return arr
@@ -93,8 +92,8 @@ class RenderFont(object):
         # the minimum number of characters that should fit in a mask
         # to define the maximum font height.
         self.min_nchar = 2
-        self.min_font_h = 22#230#22 #px : 0.6*12 ~ 7px <= actual minimum height
-        self.max_font_h = 120 #px
+        self.min_font_h = 22#149#22#230#22 #px : 0.6*12 ~ 7px <= actual minimum height
+        self.max_font_h = 120#150#120 #px
         self.p_flat = 0.10
 
         # curved baseline:
@@ -123,7 +122,7 @@ class RenderFont(object):
         lengths = [len(l) for l in lines]
         #print('pygame.version.ver = ', pygame.version.ver)
         # font parameters:
-        line_spacing = font.get_sized_height() + 5
+        line_spacing = font.get_sized_height() + 1
         
         # initialize the surface to proper size:
         line_bounds = font.get_rect(lines[np.argmax(lengths)])
@@ -195,14 +194,12 @@ class RenderFont(object):
                         ch_bounds.height = small_char.height
                         x += ch_bounds.width
 
-                    #pygame.draw.rect(surf, pygame.Color(255, 0, 0), ch_bounds,1)    
                     bbs.append(np.array(ch_bounds))
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
         rect_union = r0.unionall(bbs)
         
-
         # get the words:
         words = ' '.join(text.split())
 
@@ -218,6 +215,7 @@ class RenderFont(object):
 
     def render_curved(self, font, word_text, rendering_sample):
         """
+        NOT IN USE NOW
         use curved baseline for rendering word
         """
         red = (0,0,255)
@@ -236,8 +234,6 @@ class RenderFont(object):
         lbound = font.get_rect(word_text)
         fsize = (round(2.0*lbound.width), round(3*lspace))
         surf = pygame.Surface(fsize, pygame.locals.SRCALPHA, 32)
-        #pygame.image.save(surf, '/home/sondors/SynthText_ubuntu/results/1/render_curved-surf-1-{}.jpg'.format(rendering_sample))
-
 
         # baseline state
         mid_idx = wl//2
@@ -272,10 +268,7 @@ class RenderFont(object):
             print('Буква ', word_text[mid_idx], ' высота ', ch_bounds.h, 'все коорд', ch_bounds)
             print('Запоминаем высоту ', short_h)
         
-        #print(ch_bounds)
         mid_ch_bb = np.array(ch_bounds)
-
-        #pygame.draw.line(surf, red, ch_bounds.bottomleft, ch_bounds.bottomright, 3)
 
         # render chars to the left and right:
         last_rect = rect
@@ -366,34 +359,21 @@ class RenderFont(object):
             
         bbs = bbs_sequence_order
         center_rots = center_rots_sequence_order
-        print('bbs for line', word_text, bbs)
 
         # get the union of characters for cropping:
         r0 = pygame.Rect(bbs[0])
-        print('r0', type(r0))
-        print(r0)
+
         rect_union = r0.unionall(bbs)
-        print('type(rect_union)', type(rect_union))
-        print('(rect_union)', (rect_union))
-        print('type(rect_union)', type(rect_union))
 
         # crop the surface to fit the text:
     
         image = pygame.surfarray.pixels_alpha(surf)
-        print('type(image)', type(image))
 
-        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/pygame.surfarray.pixels_alpha(surf)-0-{}.jpg'.format(rendering_sample), image)
-        
         bbs = np.array(bbs)
         center_rots = np.array(center_rots)
         surf_arr, bbs = crop_safe(pygame.surfarray.pixels_alpha(surf), rect_union, bbs, pad=5)
 
         surf_arr = surf_arr.swapaxes(0,1)
-        #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_curved-surf_arr-2-{}.jpg'.format(rendering_sample), surf_arr)
-
-        print('bbs before', word_text, bbs_sequence_order)
-        print('bbs after', word_text, bbs)
-        print('bbs_center_rots before', word_text, center_rots)
 
         return surf_arr, word_text, bbs, center_rots, rots, is_render_multiline
 
@@ -579,7 +559,6 @@ class RenderFont(object):
 
             # render the text:
             txt_arr,txt,bb, center_rots, rots, is_render_multiline = self.render_multiline(font, text)#self.render_curved(font, text, i)
-            #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_sample-txt_arr-3-{}.jpg'.format(i), txt_arr)
 
             bb = self.bb_xywh2coords(bb, center_rots, rots, is_render_multiline)
             
@@ -592,18 +571,6 @@ class RenderFont(object):
             # position the text within the mask:
             text_mask,loc,bb, _ = self.place_text([txt_arr], mask, [bb])
 
-            #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/1/render_sample-text_mask-3-{}.jpg'.format(i), text_mask)
-
-            """print('text_mask', text_mask, len(text_mask))
-            print('text_mask[0]', text_mask[0], len(text_mask[0]))
-            print('text_mask[1]', text_mask[1], len(text_mask[1]))
-            print('loc', loc, len(loc))
-            print('bb', bb, len(bb))
-            print('_', _, len(_))"""
-
-            #text_mask = [[0]]
-            #print('text_mask,loc,bb, _', text_mask,loc,bb, _)
-
             if len(loc) > 0:#successful in placing the text collision-free:
                 return text_mask,loc[0],bb[0],text
         return #None
@@ -615,7 +582,6 @@ class RenderFont(object):
         for r in bbs:
             i = i + 1
             cv2.rectangle(ta, (r[0],r[1]), (r[0]+r[2],r[1]+r[3]), color=128, thickness=1)
-            #cv2.imwrite('/home/sondors/SynthText_ubuntu/results/all_text_arr/{}-{}.jpg'.format(i, r), ta)
         plt.imshow(ta,cmap='gray')
         plt.show()
 

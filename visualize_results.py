@@ -94,22 +94,19 @@ def main(db_fname):
             txt_utf.append(i)#.decode("utf-8"))
 
         viz_textbb(rgb, [charBB], wordBB)
-        #cv2.imwrite('results/{}.png'.format(k), rgb)
-        #plt.savefig('results/{}.png'.format(k), dpi= 'figure')
-        
-        print (
-         "image name        : ", colorize(Color.RED, k, bold=True), 'Image_{}'.format(counter))
+        #cv2.imwrite('results/120_thresh/{}.png'.format(k), rgb)
+        #plt.savefig('results/130_thresh/{}.png'.format(k), dpi= 'figure')
+        #plt.savefig('results/hz/{}.png'.format(k), dpi= 'figure')
+
+        print ("image name        : ", colorize(Color.RED, k, bold=True), 'Image_{}'.format(counter))
         #print ("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         #print ("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print ("  ** text         : ", colorize(Color.GREEN, txt_utf))
-        #print ("  ** text         : ", colorize(Color.GREEN, txt))
+
 
         if 'q' in input("next? ('q' to exit) : "):
             break
     db.close()
 
 if __name__=='__main__':
-    main('/home/sondors/SynthText_ubuntu/results/40k_13-120.h5')
-    #main('results/dset_alphabet.h5')
-    #main('results/SynthText.h5')
-    
+    main('/home/sondors/SynthText_ubuntu/results/test_data.h5')

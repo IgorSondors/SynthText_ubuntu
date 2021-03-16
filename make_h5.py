@@ -13,17 +13,17 @@ from PIL import Image
 
 start_time = time.time()
 
-START_IMG_IDX = 0
-#8003#0#8000
-NUM_IMG = -1#500#4000#-1
+START_IMG_IDX = 8000
 
-INSTANCE_PER_IMAGE = 6
+NUM_IMG = 5#-1
+
+INSTANCE_PER_IMAGE = 1
 SECS_PER_IMG = 5 #max time per image in seconds
 
 CONFIG_LOCAL = {'im_dir'   : '/home/sondors/data8k/bg_img',
                 'depth_db' : '/home/sondors/data8k/depth.h5',
                 'seg_db'   : '/home/sondors/data8k/seg.h5',
-                'out_dir'  : '/home/sondors/SynthText_ubuntu/results',
+                'out_dir'  : '/home/sondors/SynthText_ubuntu/result',
                 'data_dir' : 'data'}
 
 def add_res_to_db(imgname, res, db):
@@ -44,7 +44,7 @@ def main(viz=False):
     depth_db = h5py.File(config['depth_db'],'r')
     seg_db = h5py.File(config['seg_db'],'r')
 
-    out_db = h5py.File(outdir + '/40k_13-120.h5', 'w')
+    out_db = h5py.File(outdir + '/test_data.h5', 'w')
     out_db.create_group('/data')
 
     imnames = sorted(depth_db.keys())

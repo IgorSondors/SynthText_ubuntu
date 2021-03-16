@@ -51,7 +51,7 @@ class Layer(object):
 class FontColor(object):
 
     def __init__(self, col_file):
-        self.gray_diff_threshold = 100  # add threshold
+        self.gray_diff_threshold = 120  # add threshold
         with open(col_file,'rb') as f:
             #self.colorsRGB = cp.load(f)
             u = pickle._Unpickler(f)
@@ -195,7 +195,6 @@ class Colorize(object):
         shift : shift in pixels of the shadow
         size  : size of the GaussianBlur filter
         op    : opacity of the shadow (multiplying factor)
-
         @return : alpha of the shadow layer
                   (it is assumed that the color is black/white)
         """
@@ -212,7 +211,6 @@ class Colorize(object):
         alpha : alpha layer of the text
         size  : size of the kernel
         kernel_type : one of [rect,ellipse,cross]
-
         @return : alpha layer of the border (color to be added externally).
         """
         kdict = {'RECT':cv.MORPH_RECT, 'ELLIPSE':cv.MORPH_ELLIPSE,
@@ -330,7 +328,6 @@ class Colorize(object):
                 this color is sampled from a dictionary built
                 from text-word images' colors. The VALUE channel
                 is randomized.
-
             H : minimum height of a character
         """
         bg_col,fg_col,i = 0,0,0
@@ -343,7 +340,6 @@ class Colorize(object):
         text_arr : one alpha mask : nxm, uint8
         bg_arr   : background image: nxmx3, uint8
         min_h    : height of the smallest character (px)
-
         return text_arr blit onto bg_arr.
         """
         # decide on a color for the text:
@@ -418,7 +414,6 @@ class Colorize(object):
     def check_perceptible(self, txt_mask, bg, txt_bg):
         """
         --- DEPRECATED; USE GRADIENT CHECKING IN POISSON-RECONSTRUCT INSTEAD ---
-
         checks if the text after merging with background
         is still visible.
         txt_mask (hxw) : binary image of text -- 255 where text is present
@@ -443,7 +438,6 @@ class Colorize(object):
     def color(self, bg_arr, text_arr, hs, place_order=None, pad=20):
         """
         Return colorized text image.
-
         text_arr : list of (n x m) numpy text alpha mask (unit8).
         hs : list of minimum heights (scalar) of characters in each text-array. 
         text_loc : [row,column] : location of text in the canvas.
