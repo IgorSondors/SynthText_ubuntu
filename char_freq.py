@@ -22,5 +22,5 @@ for key in c:
 
 d = dict(c)
 # print d
-with open("char_freq.cp", 'wb') as f:
+with open("/home/sondors/SynthText_ubuntu/data/models/char_freq.cp", 'wb') as f:
     pickle.dump(d, f)
