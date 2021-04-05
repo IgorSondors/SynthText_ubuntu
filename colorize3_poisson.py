@@ -112,7 +112,7 @@ class FontColor(object):
             fg_col = col2
             diff = rgb_color_diff_in_gray(fg_col, true_bg_col)
             while diff < self.gray_diff_threshold:
-                #print 'change color'
+                print('change color!!!')
                 fg_col = np.random.choice(256, 3).astype('uint8')
                 diff = rgb_color_diff_in_gray(fg_col, true_bg_col)
             col2 = fg_col
@@ -401,6 +401,14 @@ class Colorize(object):
         # plt.imshow(l_out)
         # plt.show()
         
+        txt_bg = l_out
+        txt_mask  = text_arr
+        bg = bg_arr
+        diff, useless_tuple = self.check_perceptible(txt_mask, bg, txt_bg)
+
+        if diff[0] < 100:
+            l_out = None
+
         if l_out is None:
             # poisson recontruction produced
             # imperceptible text. In this case,
@@ -427,12 +435,12 @@ class Colorize(object):
         txt_bg = cv.cvtColor(txt_bg.copy(), cv.COLOR_RGB2Lab)
         bg_px = bg[txt_mask,:]
         txt_px = txt_bg[txt_mask,:]
-        bg_px[:,0] *= 100.0/255.0 #rescale - L channel
-        txt_px[:,0] *= 100.0/255.0
+        bg_px[:,0] =(bg_px[:,0] * 100.0/255.0) #rescale - L channel
+        txt_px[:,0] = (txt_px[:,0] * 100.0/255.0)
 
         diff = np.linalg.norm(bg_px-txt_px,ord=None,axis=1)
         diff = np.percentile(diff,[10,30,50,70,90])
-        print ("color diff percentile :", diff)
+        print ("ATTENTION!!! color diff percentile :", diff)
         return diff, (bgo,txto)
 
     def color(self, bg_arr, text_arr, hs, place_order=None, pad=20):
