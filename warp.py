@@ -7,6 +7,7 @@ import math
 import scipy
 import scipy.interpolate
 import json
+import random
 import time
 
 start_time = time.time()
@@ -41,13 +42,13 @@ def top_bottom_dots(point_x, point_y, edge_x, edge_y):
                 y1 = j[1][i]
                 x2 = j[0][i + 1]
                 y2 = j[1][i + 1]
-
+                
                 next_len = ((x2 - x1)**2+(y2 - y1)**2)**0.5
                 line_len = line_len + next_len
             lines_len.append(line_len)
         lines_len, lines = zip(*sorted(zip(lines_len, lines),reverse = True))
         lines_top_bottom = lines[0 : 3]
-
+        
         first_mid_y = 0
         for i in lines_top_bottom[0][1]:
             first_mid_y = first_mid_y + i/len(lines_top_bottom[0][1])
@@ -80,7 +81,7 @@ def find_bbox_coord(point_x, point_y):
             out_of_repeats_x.append(point_x[j] + delta*j)
             out_of_repeats_y.append(point_y[j] + delta*j)
         point_x, point_y = out_of_repeats_x, out_of_repeats_y
-
+        
         quadrate_width = ((point_x[1] - point_x[0])**2+(point_y[1] - point_y[0])**2)**0.5
         quadrate_height = ((point_x[1] - point_x[2])**2+(point_y[1] - point_y[2])**2)**0.5
         aspect_ratio = quadrate_width / quadrate_height
@@ -94,7 +95,7 @@ def find_bbox_coord(point_x, point_y):
             print('Прямоугольник')
             edge_x, edge_y = point_x, point_y
             bottom_x, bottom_y, top_x, top_y, is_good_rect = top_bottom_dots(point_x, point_y, edge_x, edge_y)
-
+                    
     elif len(point_x) > 4:
         print('Многоугольник')
         out_of_repeats_x = []
@@ -104,19 +105,19 @@ def find_bbox_coord(point_x, point_y):
             out_of_repeats_x.append(point_x[j] + delta*j)
             out_of_repeats_y.append(point_y[j] + delta*j)
         point_x, point_y = out_of_repeats_x, out_of_repeats_y
-
+        
         edge_x, edge_y = find_4_dots(point_x, point_y)
 
         bottom_x, bottom_y, top_x, top_y, is_good_rect = top_bottom_dots(point_x, point_y, edge_x, edge_y)
-
+          
     if is_good_rect:
-
+    
         bottom_x, bottom_y = Euclidian_distance_sorting(bottom_x, bottom_y, bottom = True)
         top_x, top_y = Euclidian_distance_sorting(top_x, top_y, bottom = False)
 
         bbox_height_left = ((top_x[0] - bottom_x[0])**2+(top_y[0] - bottom_y[0])**2)**0.5
         bbox_height_right = ((top_x[-1] - bottom_x[-1])**2+(top_y[-1] - bottom_y[-1])**2)**0.5
-        mid_arithmetic_h = round((bbox_height_left + bbox_height_right)/2, 1)
+        mid_arithmetic_h = int((bbox_height_left + bbox_height_right)/2)
         if mid_arithmetic_h > 150:
             ##print('Большой полигон, H = ', mid_arithmetic_h)
             #is_good_rect = False
@@ -124,7 +125,7 @@ def find_bbox_coord(point_x, point_y):
     else:
         bottom_x, bottom_y, top_x, top_y = [], [], [], []
         mid_arithmetic_h = 0
-
+    
     return is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h
 
 def Euclidian_distance_sorting(bottom_x, bottom_y, bottom):
@@ -149,42 +150,73 @@ def Euclidian_distance_sorting(bottom_x, bottom_y, bottom):
 
 def how_many_dots(bottom_x, bottom_y, top_x, top_y):
 
+    bottom_length = 0
+    for i in range(len(bottom_x) - 1):
+        bottom_length = bottom_length + (((bottom_x[i+1] - bottom_x[i])**2 + (bottom_y[i+1] - bottom_y[i])**2)**0.5)
+    top_length = 0
+    for i in range(len(top_x) - 1):
+        top_length = top_length + (((top_x[i+1] - top_x[i])**2 + (top_y[i+1] - top_y[i])**2)**0.5)
+
     how_many_dots = max(len(bottom_x), len(top_x))
-    return  how_many_dots
+    return  how_many_dots, bottom_length, top_length
 
-def kx_plus_b(bottom_x, bottom_y, number_of_dots):
-    x_plus_delta = []#bottom_x
-    y_plus_delta = []#bottom_y
+def kx_plus_b(bottom_x, bottom_y, number_of_dots, length):
+    x_plus_delta = []
+    y_plus_delta = []
     poligon_dots = 0
-    for i in range(len(bottom_x)):
+    all_dots = 1000 #- len(bottom_x)
+    print('len(bottom_x) = ', len(bottom_x))
+    
+    for i in range(len(bottom_x) - 1):
+        
+        next_x = (bottom_x[i])
+        next_y = bottom_y[i]
+        x_plus_delta.append(next_x)
+        y_plus_delta.append((next_y))
+        print('next_x = ', next_x)
+        poligon_dots = poligon_dots + 1
+        try:
+            k = (bottom_y[i] - bottom_y[i+1])/(bottom_x[i] - bottom_x[i+1])
+            b = bottom_y[i] - k * bottom_x[i]
 
-        x_plus_delta.append(int(bottom_x[i]))
-        y_plus_delta.append(int(bottom_y[i]))
+            segment_length = (((bottom_x[i+1] - bottom_x[i])**2 + (bottom_y[i+1] - bottom_y[i])**2)**0.5)
+            number_of_segment_dots = int(all_dots * segment_length / length)
+            poligon_dots = poligon_dots + number_of_segment_dots
+            print(i, 'number_of_segment_dots = ', number_of_segment_dots)
+            X_step = ((bottom_x[i+1] - bottom_x[i]) / number_of_segment_dots)
+            for j in range(number_of_segment_dots):
+                next_x = next_x + X_step
+                next_y = k * next_x + b
+                x_plus_delta.append((next_x))
+                y_plus_delta.append((next_y))
+        except:
+            print('Расстояние между точками 0 пикселей! Пропуск точки')
 
-    if len(bottom_x) != number_of_dots:
-        if len(bottom_x) > number_of_dots:
-            del_iterations = len(bottom_x) - number_of_dots
-            print('del_iterations = ', del_iterations)
-            for i in range(del_iterations):
-                mid_ind = len(x_plus_delta)//2 - 1
-                del x_plus_delta[mid_ind]
-                del y_plus_delta[mid_ind]
-        else:
-            copy_iterations = number_of_dots - len(bottom_x)
-            print('copy_iterations = ', copy_iterations)
-            for i in range(copy_iterations):
-                mid_ind = len(x_plus_delta)//2 - 1
-                x_plus_delta.insert(mid_ind, x_plus_delta[mid_ind])
-                y_plus_delta.insert(mid_ind, y_plus_delta[mid_ind])
-    if len(x_plus_delta) != number_of_dots:
-        raise print(len(x_plus_delta))  
+    x_plus_delta.append((bottom_x[-1]))
+    y_plus_delta.append((bottom_y[-1]))
     poligon_dots = poligon_dots + 1
+    print('poligon_dots = ', poligon_dots)
+
+    if len(x_plus_delta) != 1000:
+        rand_int = []
+        for j in range(len(x_plus_delta) - 1000):
+            rand_int.append(random.randint(1, 998))
+        rand_int.sort(reverse = True)
+
+        for k in rand_int:
+
+            del x_plus_delta[k]
+            del y_plus_delta[k]
+
+    #print(len(x_plus_delta)
+    if len(x_plus_delta) != 1000:
+        raise print(len(x_plus_delta))
     return poligon_dots, x_plus_delta, y_plus_delta
 
 def find_4_dots(point_x, point_y):
     i = 0
     curve = []  #c**2 = a**2 + b**2 - 2ab*cos_alpha
-
+    
     while i <= len(point_x) - 2: # except last angle
         x1 =  point_x[i]
         y1 = point_y[i]
@@ -192,7 +224,7 @@ def find_4_dots(point_x, point_y):
         y2 = point_y[i + 1]
         x0 =  point_x[i - 1]
         y0 = point_y[i - 1]
-
+        
         a = ((x2 - x1)**2+(y2 - y1)**2)**0.5
         b = ((x1 - x0)**2+(y1 - y0)**2)**0.5
         c = ((x2 - x0)**2+(y2 - y0)**2)**0.5
@@ -208,7 +240,7 @@ def find_4_dots(point_x, point_y):
     y2 = point_y[0]
     x0 =  point_x[-2]
     y0 = point_y[-2]
-
+    
     a = ((x2 - x1)**2+(y2 - y1)**2)**0.5
     b = ((x1 - x0)**2+(y1 - y0)**2)**0.5
     c = ((x2 - x0)**2+(y2 - y0)**2)**0.5   
@@ -238,7 +270,7 @@ def find_4_dots(point_x, point_y):
     for i in edge_indexes:
         edge_x.append(point_x[i])
         edge_y.append(point_y[i])
-
+        
     return edge_x, edge_y
 
 def warp_image(img, src, dst, width, height):
@@ -254,7 +286,9 @@ def warp_image(img, src, dst, width, height):
     return warped
 
 def crop_areas(opencv_img, poligons, poligon_height):
-
+    print('crop_areas')
+    print('x', poligons[0][0],poligons[0][-1])
+    print('y', poligons[1][0],poligons[1][-1])
     boarder = 192
     src = []
     dst = []
@@ -263,7 +297,7 @@ def crop_areas(opencv_img, poligons, poligon_height):
     dist = 0.0
     dist_cur = 0
     hor_scale = float(stripe_height/poligon_height)
-    
+    # xu - x upper, xl - x lower
     for i in range(len(poligons[2])):
         if(i != 0):
             dist = math.sqrt((poligons[2][i] - poligons[2][i - 1])**2 + (poligons[3][i] - poligons[3][i - 1])**2)
@@ -279,17 +313,19 @@ def crop_areas(opencv_img, poligons, poligon_height):
             dist = math.sqrt((poligons[2][i] - poligons[2][i - 1])**2 + (poligons[3][i] - poligons[3][i - 1])**2)
         dist_cur += dist
 
+    
         src.append([poligons[1][i], poligons[0][i]])
         dst.append([stripe_height, dist_cur*hor_scale])
 
     src_arr = np.array(src)
     dst_arr = np.array(dst)
-
-    warped = warp_image(opencv_img, src_arr, dst_arr, int(dst[len(poligons) - 1][1]), 32)
+    
+    warped = warp_image(opencv_img, src_arr, dst_arr, int(dst[len(poligons[0]) - 1][1]), 32)
     warped = cv2.copyMakeBorder( warped, top=0, bottom=0, left=boarder, right=boarder, borderType=cv2.BORDER_CONSTANT )
+    
     return warped
 
-with open('input_total - Copy.txt', encoding = 'utf8') as fp:
+with open('input.txt', encoding = 'utf8') as fp:
     lines = fp.readlines()
     poligon_counter = -1
 
@@ -297,15 +333,14 @@ with open('input_total - Copy.txt', encoding = 'utf8') as fp:
         js_line = json.loads(line)
         file_name = js_line['file'].split('/')
         file_name = file_name[-1].split('?')
-        file_path = './all_poligons/' + file_name[0]
+        file_path = './images/' + file_name[0]
         im = cv2.imread(file_path)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         if im is None:
             continue
-        
         height, width = im.shape[:2]
 
-        second = js_line['result']
-       
+        second = js_line['result']        
         # second - один словарик для одного из изображений из множества {"file":"name.jpg","result":[...]}, 
         # включающий в себя [...] = [{"type":"polygon","data":[{"x":0.4,"y":0.4}, {}...], "readable":t/f}, ...]
         for s in second: # s - один из множества полигонов одной картинки
@@ -316,6 +351,7 @@ with open('input_total - Copy.txt', encoding = 'utf8') as fp:
 
             point_x = []
             point_y = []
+
             for d in data: # Множество точек одного полигона
                 x = d['x']*width
                 y = d['y']*height
@@ -324,24 +360,21 @@ with open('input_total - Copy.txt', encoding = 'utf8') as fp:
                 point_y.append(int(y))
 
             if is_good_rect:
-                print(file_name[0])
                 # функция определяющая где верх и низ полигона и возвращающая их точки
                 is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h = find_bbox_coord(point_x, point_y)
             if is_good_rect and mid_arithmetic_h <= 150:
+                
+                print('bottom_x = ', bottom_x,'\n', 'bottom_y = ', bottom_y,'\n', 'top_x = ', top_x,'\n', 'top_y = ', top_y)
+                number_of_dots, bottom_length, top_length = how_many_dots(bottom_x, bottom_y, top_x, top_y)
 
-                number_of_dots = how_many_dots(bottom_x, bottom_y, top_x, top_y)
-
-                poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y, number_of_dots)
-                poligon_dots_top, x_plus_delta_top, y_plus_delta_top = kx_plus_b(top_x, top_y, number_of_dots)
+                poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y, number_of_dots, bottom_length)
+                poligon_dots_top, x_plus_delta_top, y_plus_delta_top = kx_plus_b(top_x, top_y, number_of_dots, top_length)
 
                 poligons = [x_plus_delta, y_plus_delta, x_plus_delta_top, y_plus_delta_top]
 
                 poligon_counter = poligon_counter + 1
-                print('len top down', len(bottom_x),len(top_x))
-                print('len poligons top down', len(poligons[0]),len(poligons[2]))
-                print('poligon_counter = ', poligon_counter)
-                print('mid_arithmetic_h = ', mid_arithmetic_h)
-
+                
                 warped = crop_areas(im, poligons, mid_arithmetic_h)
                 cv2.imwrite('./stripes/{}_{}.jpg'.format(file_name[0][:-4], poligon_counter), warped, [int(cv2.IMWRITE_JPEG_QUALITY), 100])   
+
 print('end_time = ', time.time() - start_time)
