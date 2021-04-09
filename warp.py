@@ -12,6 +12,25 @@ import time
 
 start_time = time.time()
 
+def draw_points(im, poligon_counter, bottom_x, bottom_y, top_x, top_y):
+    # Radius of circle
+    radius = 1
+    thickness = 3
+    for i in range(len(bottom_x)):
+        x, y = bottom_x[i], bottom_y[i]
+        center_coordinates = (int(x), int(y))
+        color = (0, 0, 255)
+        im = cv2.circle(im, center_coordinates, radius, color, thickness)
+    
+    for i in range(len(top_y)):
+        x, y = top_x[i], top_y[i] 
+        center_coordinates = (int(x), int(y))
+        color = (255, 0, 0)
+        im = cv2.circle(im, center_coordinates, radius, color, thickness)
+
+    cv2.imwrite('./draw/{}.jpg'.format(poligon_counter), im)
+    return im
+
 def top_bottom_dots(point_x, point_y, edge_x, edge_y):
     if point_x[0] in edge_x:
         is_good_rect = True
@@ -265,9 +284,9 @@ def warp_image(img, src, dst, width, height):
     return warped
 
 def crop_areas(opencv_img, poligons, poligon_height):
-    print('crop_areas')
-    print('x', poligons[0][0],poligons[0][-1])
-    print('y', poligons[1][0],poligons[1][-1])
+    #print('crop_areas')
+    #print('x', poligons[0][0],poligons[0][-1])
+    #print('y', poligons[1][0],poligons[1][-1])
     boarder = 192
     src = []
     dst = []
@@ -304,6 +323,45 @@ def crop_areas(opencv_img, poligons, poligon_height):
     
     return warped
 
+def enlarge_coord(bottom_x, bottom_y, is_bottom, mid_arithmetic_h):
+    new_bottom_x, new_bottom_y, new_mid_arithmetic_h = [], [], []
+    coord_source = []
+    for i in range(len(bottom_x) - 1):
+        coord_source.append([bottom_x[i], bottom_y[i], mid_arithmetic_h, bottom_x[i + 1], bottom_y[i + 1]])
+    for s in coord_source:
+        x = s[3] - s[0]
+        y = s[1] - s[4]
+        sign = 0
+        if y < 0.0:
+            sign = 1
+            y = -y
+        ugol_a = 180.0 - 90.0 - math.atan(y/x)*(180.0/math.pi)
+        ugol_a_rad = ugol_a * (math.pi/180.0)
+        y_ = math.sin(ugol_a_rad)*s[2]
+        x_ = math.cos(ugol_a_rad)*s[2]
+        if sign == 1:
+            x_ = -x_
+        #enlarge ceil and floor
+        enlarge_c = 0.45#uniform(0.1, 0.7)
+        d_x_c = x_*enlarge_c
+        d_y_c = y_*enlarge_c
+        enlarge_f = 0.45#uniform(0.1, 0.7)
+        d_x_f = x_*enlarge_f
+        d_y_f = y_*enlarge_f
+
+        if is_bottom == True:
+            new_bottom_x.append(s[0] + d_x_f)
+            new_bottom_x.append(s[3] + d_x_f)
+            new_bottom_y.append(s[1] + d_y_f)
+            new_bottom_y.append(s[4] + d_y_f)
+        else: # top
+            new_bottom_x.append(s[0]  - d_x_c)
+            new_bottom_x.append(s[3]  - d_x_c)
+            new_bottom_y.append(s[1]  - d_y_c)
+            new_bottom_y.append(s[4]  - d_y_c)
+
+    return new_bottom_x, new_bottom_y, enlarge_c, enlarge_f
+
 with open('input.txt', encoding = 'utf8') as fp:
     lines = fp.readlines()
     poligon_counter = -1
@@ -316,7 +374,7 @@ with open('input.txt', encoding = 'utf8') as fp:
         im = cv2.imread(file_path)
         if im is None:
             continue
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        #im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         height, width = im.shape[:2]
 
         second = js_line['result']        
@@ -341,8 +399,16 @@ with open('input.txt', encoding = 'utf8') as fp:
             if is_good_rect:
                 # функция определяющая где верх и низ полигона и возвращающая их точки
                 is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h = find_bbox_coord(point_x, point_y)
+
+                is_bottom = True
+                bottom_x, bottom_y, enlarge_c, enlarge_f = enlarge_coord(bottom_x, bottom_y, is_bottom, mid_arithmetic_h)
+                is_bottom = False
+                top_x, top_y, enlarge_c, enlarge_f = enlarge_coord(top_x, top_y, is_bottom, mid_arithmetic_h)
+                #draw_points(im, poligon_counter, bottom_x, bottom_y, top_x, top_y)
+                ########################################################################
+
             if is_good_rect and mid_arithmetic_h <= 150:
-                
+                mid_arithmetic_h = mid_arithmetic_h * (1+ enlarge_c + enlarge_f)
                 print('bottom_x = ', bottom_x,'\n', 'bottom_y = ', bottom_y,'\n', 'top_x = ', top_x,'\n', 'top_y = ', top_y)
                 number_of_dots, bottom_length, top_length = how_many_dots(bottom_x, bottom_y, top_x, top_y)
 
