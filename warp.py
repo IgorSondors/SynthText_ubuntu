@@ -160,58 +160,37 @@ def how_many_dots(bottom_x, bottom_y, top_x, top_y):
     how_many_dots = max(len(bottom_x), len(top_x))
     return  how_many_dots, bottom_length, top_length
 
-def kx_plus_b(bottom_x, bottom_y, number_of_dots, length):
+def kx_plus_b(bottom_x, bottom_y, top_bottom_ratio):
     x_plus_delta = []
     y_plus_delta = []
+    pixel_step = 1 * top_bottom_ratio
     poligon_dots = 0
-    all_dots = 1000 #- len(bottom_x)
-    print('len(bottom_x) = ', len(bottom_x))
-    
+
     for i in range(len(bottom_x) - 1):
-        
-        next_x = (bottom_x[i])
+        next_x = int(bottom_x[i])
         next_y = bottom_y[i]
         x_plus_delta.append(next_x)
-        y_plus_delta.append((next_y))
-        print('next_x = ', next_x)
+        y_plus_delta.append(round(next_y,1))
         poligon_dots = poligon_dots + 1
         try:
             k = (bottom_y[i] - bottom_y[i+1])/(bottom_x[i] - bottom_x[i+1])
             b = bottom_y[i] - k * bottom_x[i]
-
-            segment_length = (((bottom_x[i+1] - bottom_x[i])**2 + (bottom_y[i+1] - bottom_y[i])**2)**0.5)
-            number_of_segment_dots = int(all_dots * segment_length / length)
-            poligon_dots = poligon_dots + number_of_segment_dots
-            print(i, 'number_of_segment_dots = ', number_of_segment_dots)
-            X_step = ((bottom_x[i+1] - bottom_x[i]) / number_of_segment_dots)
-            for j in range(number_of_segment_dots):
+            dots_between_edges = int((((bottom_x[i+1] - bottom_x[i])**2 + (bottom_y[i+1] - bottom_y[i])**2)**0.5) / pixel_step)
+            X_step = (bottom_x[i+1] - bottom_x[i]) / dots_between_edges
+            for j in range(dots_between_edges):
                 next_x = next_x + X_step
                 next_y = k * next_x + b
-                x_plus_delta.append((next_x))
-                y_plus_delta.append((next_y))
+                x_plus_delta.append(int(next_x))
+                y_plus_delta.append(round(next_y,1))
+            poligon_dots = poligon_dots + dots_between_edges
         except:
             print('Расстояние между точками 0 пикселей! Пропуск точки')
 
-    x_plus_delta.append((bottom_x[-1]))
-    y_plus_delta.append((bottom_y[-1]))
+    x_plus_delta.append(int(bottom_x[-1]))
+    y_plus_delta.append(round(bottom_y[-1],1))
     poligon_dots = poligon_dots + 1
-    print('poligon_dots = ', poligon_dots)
 
-    if len(x_plus_delta) != 1000:
-        rand_int = []
-        for j in range(len(x_plus_delta) - 1000):
-            rand_int.append(random.randint(1, 998))
-        rand_int.sort(reverse = True)
-
-        for k in rand_int:
-
-            del x_plus_delta[k]
-            del y_plus_delta[k]
-
-    #print(len(x_plus_delta)
-    if len(x_plus_delta) != 1000:
-        raise print(len(x_plus_delta))
-    return poligon_dots, x_plus_delta, y_plus_delta
+    return x_plus_delta, y_plus_delta
 
 def find_4_dots(point_x, point_y):
     i = 0
@@ -367,14 +346,40 @@ with open('input.txt', encoding = 'utf8') as fp:
                 print('bottom_x = ', bottom_x,'\n', 'bottom_y = ', bottom_y,'\n', 'top_x = ', top_x,'\n', 'top_y = ', top_y)
                 number_of_dots, bottom_length, top_length = how_many_dots(bottom_x, bottom_y, top_x, top_y)
 
-                poligon_dots, x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y, number_of_dots, bottom_length)
-                poligon_dots_top, x_plus_delta_top, y_plus_delta_top = kx_plus_b(top_x, top_y, number_of_dots, top_length)
+                if len(bottom_x) == len(top_x) == 4:
+                    x_plus_delta, y_plus_delta = bottom_x, bottom_y
+                    x_plus_delta_top, y_plus_delta_top = top_x, top_y
+                else:
+                    top_bottom_ratio = 1
+                    x_plus_delta, y_plus_delta = kx_plus_b(bottom_x, bottom_y, top_bottom_ratio)
+                    top_bottom_ratio = top_length / bottom_length
+                    x_plus_delta_top, y_plus_delta_top = kx_plus_b(top_x, top_y, top_bottom_ratio)
 
+                    if len(x_plus_delta) != len(x_plus_delta_top):
+                        how_many_dots_to_remove = abs(len(x_plus_delta) - len(x_plus_delta_top))
+                        rand_int = []
+                        if len(x_plus_delta) > len(x_plus_delta_top):
+                            for j in range(how_many_dots_to_remove):
+                                rand_int.append(random.randint(1, len(x_plus_delta) - 2))
+                            rand_int.sort(reverse = True)
+                            for k in rand_int:
+                                del x_plus_delta[k]
+                                del y_plus_delta[k]
+                        else:
+                            for j in range(how_many_dots_to_remove):
+                                rand_int.append(random.randint(1, len(x_plus_delta_top) - 2))
+                            rand_int.sort(reverse = True)
+                            for k in rand_int:
+                                del x_plus_delta_top[k]
+                                del y_plus_delta_top[k]   
+
+                #if len(x_plus_delta) == len(x_plus_delta_top):
                 poligons = [x_plus_delta, y_plus_delta, x_plus_delta_top, y_plus_delta_top]
 
                 poligon_counter = poligon_counter + 1
                 
                 warped = crop_areas(im, poligons, mid_arithmetic_h)
                 cv2.imwrite('./stripes/{}_{}.jpg'.format(file_name[0][:-4], poligon_counter), warped, [int(cv2.IMWRITE_JPEG_QUALITY), 100])   
-
+                #else:
+                #    raise print('incorrect len', len(x_plus_delta), len(x_plus_delta_top))
 print('end_time = ', time.time() - start_time)
