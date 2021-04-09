@@ -302,7 +302,7 @@ def crop_areas(opencv_img, poligons, poligon_height):
         dist_cur += dist
 
         src.append([poligons[3][i], poligons[2][i]])
-        dst.append([0, dist_cur*hor_scale])
+        dst.append([0, dist_cur*hor_scale*2])
 
     dist = 0.0
     dist_cur = 0
@@ -313,7 +313,7 @@ def crop_areas(opencv_img, poligons, poligon_height):
 
     
         src.append([poligons[1][i], poligons[0][i]])
-        dst.append([stripe_height, dist_cur*hor_scale])
+        dst.append([stripe_height, dist_cur*hor_scale*2])
 
     src_arr = np.array(src)
     dst_arr = np.array(dst)
@@ -400,14 +400,15 @@ with open('input.txt', encoding = 'utf8') as fp:
                 # функция определяющая где верх и низ полигона и возвращающая их точки
                 is_good_rect, bottom_x, bottom_y, top_x, top_y, mid_arithmetic_h = find_bbox_coord(point_x, point_y)
 
+            if is_good_rect and mid_arithmetic_h <= 150:
                 is_bottom = True
                 bottom_x, bottom_y, enlarge_c, enlarge_f = enlarge_coord(bottom_x, bottom_y, is_bottom, mid_arithmetic_h)
                 is_bottom = False
                 top_x, top_y, enlarge_c, enlarge_f = enlarge_coord(top_x, top_y, is_bottom, mid_arithmetic_h)
+
                 #draw_points(im, poligon_counter, bottom_x, bottom_y, top_x, top_y)
                 ########################################################################
 
-            if is_good_rect and mid_arithmetic_h <= 150:
                 mid_arithmetic_h = mid_arithmetic_h * (1+ enlarge_c + enlarge_f)
                 print('bottom_x = ', bottom_x,'\n', 'bottom_y = ', bottom_y,'\n', 'top_x = ', top_x,'\n', 'top_y = ', top_y)
                 number_of_dots, bottom_length, top_length = how_many_dots(bottom_x, bottom_y, top_x, top_y)
