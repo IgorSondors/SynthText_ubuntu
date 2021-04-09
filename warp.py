@@ -314,9 +314,9 @@ with open('input.txt', encoding = 'utf8') as fp:
         file_name = file_name[-1].split('?')
         file_path = './images/' + file_name[0]
         im = cv2.imread(file_path)
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         if im is None:
             continue
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         height, width = im.shape[:2]
 
         second = js_line['result']        
@@ -346,7 +346,7 @@ with open('input.txt', encoding = 'utf8') as fp:
                 print('bottom_x = ', bottom_x,'\n', 'bottom_y = ', bottom_y,'\n', 'top_x = ', top_x,'\n', 'top_y = ', top_y)
                 number_of_dots, bottom_length, top_length = how_many_dots(bottom_x, bottom_y, top_x, top_y)
 
-                if len(bottom_x) == len(top_x) == 4:
+                if len(bottom_x) == len(top_x) == 2:
                     x_plus_delta, y_plus_delta = bottom_x, bottom_y
                     x_plus_delta_top, y_plus_delta_top = top_x, top_y
                 else:
@@ -357,6 +357,7 @@ with open('input.txt', encoding = 'utf8') as fp:
 
                     if len(x_plus_delta) != len(x_plus_delta_top):
                         how_many_dots_to_remove = abs(len(x_plus_delta) - len(x_plus_delta_top))
+                        print('how_many_dots_to_remove = ', how_many_dots_to_remove)
                         rand_int = []
                         if len(x_plus_delta) > len(x_plus_delta_top):
                             for j in range(how_many_dots_to_remove):
